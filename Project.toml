@@ -1,0 +1,7 @@
+name = "OnlineSampling"
+uuid = "a06cc104-25ae-43ee-945f-6e02d59549de"
+authors = ["Waiss Azizian <waiss.azizian@ens.fr> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1.4.1"
