@@ -1,6 +1,24 @@
-using OnlineSampling
 using Test
+using Distributions
+using HypothesisTests
+using PDMats
+using LinearAlgebra
+using OnlineSampling
+using OnlineSampling: is_inv_sat, Marginalized, Initialized, Realized
 
-@testset "OnlineSampling.jl" begin
-    # Write your tests here.
+testdir = dirname(@__FILE__)
+
+try
+    _ = exit_on_error
+catch UndefVarError
+    global exit_on_error
+    exit_on_error = false
+end
+
+include("custom_testset.jl")
+
+@testset TS exit_on_error=exit_on_error "OnlineSampling.jl" begin
+    @testset "simple gaussian" begin
+        include(joinpath(testdir, "simple_gaussian.jl"))
+    end
 end
