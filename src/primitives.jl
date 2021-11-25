@@ -40,7 +40,7 @@ function new_id(gm)
     # TODO: this logic will be improved
     @assert length(gm.nodes) == gm.last_id
     id = gm.last_id + 1
-    return setproperties(gm, last_id = id), id
+    return (@set gm.last_id = id), id
 end
 
 function set!(gm::GraphicalModel, node::AbstractNode)
@@ -65,7 +65,7 @@ function add_marginalized_child!(gm::GraphicalModel, child::Marginalized)
 
     @chain get_parent(gm, child) begin
         @aside @assert isnothing(_.marginalized_child)
-        setproperties(marginalized_child = child.id)
+        @set _.marginalized_child = child.id
         update!(gm, _)
     end
 end
@@ -76,7 +76,7 @@ function rm_marginalized_child!(gm::GraphicalModel, child::Marginalized)
     end
 
     @chain get_parent(gm, child) begin
-        setproperties(marginalized_child = nothing)
+        @set _.marginalized_child = nothing
         update!(gm, _)
     end
 end

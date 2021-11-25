@@ -21,8 +21,8 @@ function detach!(gm::GraphicalModel, node::Realized)
         @chain gm.nodes[child_id] begin
             marginalize!(gm, _)
             # Remove edge node -> child
-            setproperties(parent_id = nothing)
-            setproperties(parent_child_ref = nothing)
+            @set _.parent_id = nothing
+            @set _.parent_child_ref = nothing
             update!(gm, _)
         end
     end
@@ -49,8 +49,8 @@ function condition!(gm::GraphicalModel, node::Realized)
 
     # Delete edge parent -> node
     @chain node begin
-        setproperties(parent_id = nothing)
-        setproperties(parent_child_ref = nothing)
+        @set _.parent_id = nothing
+        @set _.parent_child_ref = nothing
     end
 end
 
