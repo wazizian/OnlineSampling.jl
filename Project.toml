@@ -14,4 +14,5 @@ LinkedLists = "70f5e60a-1556-5f34-a19e-a48b3e4aaee9"
 PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
 
 [compat]
+Chain = "0.4"
 julia = "1.6.4"
