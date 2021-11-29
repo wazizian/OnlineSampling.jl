@@ -120,7 +120,7 @@ function retract!(gm::GraphicalModel, node::Marginalized)
 
     child = gm.nodes[node.marginalized_child]
     _, _ = value!(gm, child)
-    return node
+    return updated(gm, node)
 end
 
 function observe!(gm::GraphicalModel, node::AbstractNode, value::AbstractArray)

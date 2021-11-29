@@ -21,4 +21,7 @@ include("custom_testset.jl")
     @testset "simple gaussian" begin
         include(joinpath(testdir, "simple_gaussian.jl"))
     end
+    @testset "tree of gaussians" begin
+        include(joinpath(testdir, "tree_gaussian.jl"))
+    end
 end

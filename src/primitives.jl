@@ -57,6 +57,7 @@ end
 get_parent(gm, node) = gm.nodes[node.parent_id]
 has_parent(gm, node) = !isnothing(node.parent_id)
 update!(gm, node) = gm.nodes[node.id] = node
+updated(gm, node) = gm.nodes[node.id]
 
 function add_marginalized_child!(gm::GraphicalModel, child::Marginalized)
     if !has_parent(gm, child)
