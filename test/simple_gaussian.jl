@@ -74,3 +74,28 @@ end
     # Broken for now because repeated sampling is not correctly implemented yet
     @test_broken pvalue(test) > 0.05
 end
+
+@testset "Observe with 3 children" begin
+    gm = GraphicalModel(Int)
+    @test is_inv_sat(gm)
+
+    μ = [0.]
+    Σ = ScalMat(1, 1.0)
+    id = 1.0*I(1)
+
+    gm, x = initialize!(gm, MvNormal(μ, Σ))
+    @test is_inv_sat(gm)
+
+    gm, y = initialize!(gm, CdMvNormal(id, μ, Σ), x)
+    @test is_inv_sat(gm)
+
+    gm, z = initialize!(gm, CdMvNormal(id, μ, Σ), y)
+    @test is_inv_sat(gm)
+    
+    observe!(gm, z, [0.])
+    @test is_inv_sat(gm)
+
+    y_node = gm.nodes[y]
+
+    @test y_node isa Marginalized
+end

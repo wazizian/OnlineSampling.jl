@@ -64,7 +64,7 @@ function add_marginalized_child!(gm::GraphicalModel, child::Marginalized)
     end
 
     @chain get_parent(gm, child) begin
-        @aside @assert isnothing(_.marginalized_child)
+        @aside @assert isnothing(_.marginalized_child) || _.marginalized_child == child.id
         @set _.marginalized_child = child.id
         update!(gm, _)
     end
