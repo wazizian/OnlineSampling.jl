@@ -39,7 +39,7 @@ end
     @test y_node isa Realized
     @test y_node.val ≈ [2.]
     @test x_node isa Marginalized
-    @test x_node.d ≈ MvNormal([3/2], ScalMat(1, 2/11))
+    @test x_node.d ≈ MvNormal([3/11], ScalMat(1, 2/11))
 end
 
 @testset "Child distribution" begin
@@ -92,10 +92,13 @@ end
     gm, z = initialize!(gm, CdMvNormal(id, μ, Σ), y)
     @test is_inv_sat(gm)
     
-    observe!(gm, z, [0.])
+    observe!(gm, z, [1.])
     @test is_inv_sat(gm)
 
     y_node = gm.nodes[y]
-
     @test y_node isa Marginalized
+    @test y_node.d ≈ MvNormal([2/3], 2/3 * I(1))
+
+    d = jointdist!(gm, y, x)
+    @test d ≈ MvNormal([1, 2]/3, [1 1; 1 2] - [1 2; 2 4]/3)
 end

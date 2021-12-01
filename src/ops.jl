@@ -133,6 +133,16 @@ function observe!(gm::GraphicalModel, node::AbstractNode, value::AbstractArray)
     end
 end
 
+function jointdist!(gm::GraphicalModel, child::Initialized, parent::Marginalized)
+    return jointdist(parent.d, child.cd)
+end
+
+function jointdist!(gm::GraphicalModel, child::Marginalized, parent::Marginalized)
+    new_child = dist!(gm, child)
+    rev_cd = condition_cd(parent.d, new_child.cd)
+    return jointdist(child.d, rev_cd)
+end
+
 # Exposed interface
 function initialize!(gm::GraphicalModel{I}, d::Distribution) where {I}
     new_gm, id = new_id(gm)
@@ -164,3 +174,10 @@ function dist!(gm::GraphicalModel{I}, id::I) where {I}
     return node.d
 end
 
+function jointdist!(gm::GraphicalModel{I}, child_id::I, parent_id::I) where {I}
+    #return the dist of (child, parent)
+    parent = gm.nodes[parent_id]
+    child = gm.nodes[child_id]
+    @assert child.parent_id == parent.id
+    return jointdist!(gm, child, parent)
+end

@@ -7,6 +7,7 @@ using LinkedLists
 using Accessors
 using Chain
 
+include("cd.jl")
 include("structs.jl")
 include("linear_gaussian_cd.jl")
 include("primitives.jl")
@@ -18,6 +19,7 @@ export
     value!,
     observe!,
     dist!,
+    jointdist!,
     CdMvNormal
 
 end
