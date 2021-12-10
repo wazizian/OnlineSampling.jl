@@ -4,7 +4,7 @@ using HypothesisTests
 using PDMats
 using LinearAlgebra
 using OnlineSampling
-using OnlineSampling: is_inv_sat, Marginalized, Initialized, Realized
+using .DelayedSampling: is_inv_sat, Marginalized, Initialized, Realized
 
 testdir = dirname(@__FILE__)
 
