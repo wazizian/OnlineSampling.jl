@@ -21,7 +21,7 @@ test:
 
 dev_test:
 	# Development tests
-	julia test/conttesting.jl
+	julia --project test/conttesting.jl
 
 uninstall:
 	# Uninstall package

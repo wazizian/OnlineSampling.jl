@@ -1,10 +1,7 @@
-using Pkg
-
-testdir = dirname(@__FILE__)
-Pkg.activate(testdir)
-
 using Revise
 using OnlineSampling
+
+testdir = dirname(@__FILE__)
 
 entr([testdir], [OnlineSampling]; postpone=false) do
     Base.run(`clear`)
