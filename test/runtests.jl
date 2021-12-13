@@ -3,6 +3,8 @@ using Distributions
 using HypothesisTests
 using PDMats
 using LinearAlgebra
+using MacroTools
+using MacroTools: postwalk
 using OnlineSampling
 using .DelayedSampling: is_inv_sat, Marginalized, Initialized, Realized
 
@@ -19,9 +21,12 @@ include("custom_testset.jl")
 
 @testset TS exit_on_error=exit_on_error "OnlineSampling.jl" begin
     @testset "simple gaussian" begin
-        include(joinpath(testdir, "simple_gaussian.jl"))
+        include(joinpath(testdir, "delayed_sampling/simple_gaussian.jl"))
     end
     @testset "tree of gaussians" begin
-        include(joinpath(testdir, "tree_gaussian.jl"))
+        include(joinpath(testdir, "delayed_sampling/tree_gaussian.jl"))
+    end
+    @testset "synchronous constructs" begin
+        include(joinpath(testdir, "simple_synchronous.jl"))
     end
 end
