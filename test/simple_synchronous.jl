@@ -24,7 +24,9 @@ end
         x = incr_fun(@prev(x))
     end
     @node function counter(arr)
-        i = @node pure_counter()
+        @init reset = false
+        reset = (@prev(i) == 5)
+        i = @node reset pure_counter()
         push!(arr, i)
     end
 
@@ -36,7 +38,7 @@ end
     # call node for 10 iterations
     @node T=10 counter(arr)
 
-    @test arr == collect(1:10)
+    @test arr == cat(collect(1:5), collect(1:5), dims=1)
 end
 
 @testset "nothing propagation" begin
