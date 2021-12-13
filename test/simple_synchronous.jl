@@ -15,8 +15,8 @@
     @test arr == collect(1:10)
 end
 
-incr_fun(x::Int)::Int = x + 1
 @testset "nested counter" begin
+    incr_fun(x::Int)::Int = x + 1
     @assert @isdefined(incr_fun)
 
     @node function pure_counter()::Int 
