@@ -24,10 +24,7 @@ end
 # Ignore x if not an exp
 stopwalk(f, x) = x
 
-function treat_initialized_vars(reset_symb::Symbol, body::Expr)::Expr
-    # This is a naive reference imple
-    # TODO (impr) create a reset func and dispatch
-
+function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     initialized_vars = Set{Symbol}()
 
     new_body = @chain body begin
@@ -40,17 +37,13 @@ function treat_initialized_vars(reset_symb::Symbol, body::Expr)::Expr
         stopwalk(_) do walk, ex
             # important, do not modify special init assignments
             @capture(ex, @init var_ = val_) && return quote @init $(walk(var)) = $(walk(val)) end
-            @capture(ex, var_ = val_) && var in initialized_vars && return quote
-                $(reset_symb) ? $(walk(val)) : $(walk(var)) = $(walk(val))
-            end
+            @capture(ex, var_ = val_) && var in initialized_vars && return (reset ? walk(val) : quote $(walk(var)) = $(walk(val)) end)
             return nothing
         end
         # init
         postwalk(_) do ex
             @capture(ex, @init var_ = val_) || return ex
-            return quote
-                $(reset_symb) ? $(var) = $(val) : $(val)
-            end
+            return (reset ? quote $(var) = $(val) end : val)
         end
     end
 
@@ -62,7 +55,7 @@ function treat_initialized_vars(reset_symb::Symbol, body::Expr)::Expr
     return new_body
 end
 
-function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)::Expr
+function treat_node_calls(state_symb::Symbol, reset::Bool, body::Expr)::Expr
     new_body = postwalk(body) do ex
         @capture(ex, (@node cond_ f_(args__)) | (@node f_(args__))) || return ex
 
@@ -72,7 +65,7 @@ function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)::E
         id = node_counter
 
         # integrate reset condition
-        reset_cond = isnothing(cond) ? reset_symb : :($(reset_symb) || $(cond))
+        reset_cond = isnothing(cond) ? :($(reset)) : :($(reset) || $(cond))
         for arg in [reset_cond, id, state_symb]
             insert!(args, 1, arg)
         end
@@ -87,7 +80,7 @@ function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)::E
     return new_body
 end
 
-function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_symb::Symbol, store_symb::Symbol, body::Expr)::Tuple{Expr, Expr, Expr}
+function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, store_symb::Symbol, body::Expr)
     # Collect stored variables and insert call to store
     stored_vars = Set{Symbol}()
     new_body = @chain body begin
@@ -118,6 +111,10 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_
         @capture(ex, @prev _) && error("Ill formed @prev call inside node: found $(ex)")
     end
 
+    return stored_vars, new_body
+end
+
+function create_struct(state_symb::Symbol, func_id_symb::Symbol, stored_vars::Set{Symbol})
     # TODO (impr) use type info
     # Build stored struct
     # (to be inserted before func)
@@ -131,7 +128,7 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_
             $(stored_vars...)
         end
     end
-    # add the constructore only if stored_vars != emptyset
+    # add the constructor only if stored_vars != emptyset
     full_struct_def = isempty(stored_vars) ? struct_def : quote
         $(struct_def)
         # constructor
@@ -148,11 +145,9 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_
     end
 
     # Build reset code
-    reset_code = quote
-        $(reset_symb) && ($(state_symb).nodestates[$(func_id_symb)] = $(struct_symb)())
-    end
+    reset_code = quote ($(state_symb).nodestates[$(func_id_symb)] = $(struct_symb)()) end
 
-    return full_struct_def, push_front(reset_code, new_body), copy_code
+    return full_struct_def, copy_code, reset_code
 end
 
 macro node(args...)
@@ -173,7 +168,7 @@ function node_build(splitted)
     func_id_symb = gensym()
     reset_symb = gensym()
     # TODO (impr) : add types
-    for symb in [reset_symb, func_id_symb, state_symb]
+    for symb in [func_id_symb, state_symb]
         insert!(splitted[:args], 1, symb)
     end
 
@@ -184,25 +179,53 @@ function node_build(splitted)
         $(store_symb) = $(state_symb).nodestates[$(func_id_symb)]
     end
 
-    struct_def, new_body, copy_code = @chain body begin
+    global node_counter
+    backup_node_coutner = node_counter
+
+    stored_vars, no_reset_body = @chain body begin
         push_front(assign_store, _)
-        treat_initialized_vars(reset_symb, _)
-        treat_node_calls(state_symb, reset_symb, _)
-        treat_stored_variables(state_symb, func_id_symb, reset_symb, store_symb, _)
+        treat_initialized_vars(false, _)
+        treat_node_calls(state_symb, false, _)
+        treat_stored_variables(state_symb, func_id_symb, store_symb, _)
     end
 
-    # Create inner function
+    node_counter = backup_node_coutner
+
+    struct_def, copy_code, reset_code = create_struct(state_symb, func_id_symb, stored_vars)
+
+    _, reset_body = @chain body begin
+        push_front(assign_store, _)
+        treat_initialized_vars(true, _)
+        treat_node_calls(state_symb, true, _)
+        push_front(reset_code, _)
+        treat_stored_variables(state_symb, func_id_symb, store_symb, _)
+    end
+
+    # Create inner functions
     name = splitted[:name]
-    inner_name = gensym()
 
-    splitted[:body] = new_body
-    splitted[:name] = inner_name
-    inner_func = combinedef(splitted)
+    no_reset_inner_name = gensym()
+    reset_inner_name = gensym()
 
-    # Create inner_func call
+    # Create no_reset function
+    splitted[:body] = no_reset_body
+    splitted[:name] = no_reset_inner_name
+    no_reset_inner_func = combinedef(splitted)
+
+    # Create reset function
+    splitted[:body] = reset_body
+    splitted[:name] = reset_inner_name
+    reset_inner_func = combinedef(splitted)
+
+    # Create inner function calls
     tmp = gensym()
     inner_func_call = quote
-        $(tmp) = $(inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
+        $(tmp) = 
+        if $(reset_symb)
+            $(reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
+        else
+            $(no_reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
+        end
     end
 
     # Create wrapper func
@@ -211,15 +234,18 @@ function node_build(splitted)
         $(copy_code)
         $(tmp)
     end
+    insert!(splitted[:args], 3, reset_symb)
     splitted[:body] = outer_body
     splitted[:name] = name
     outer_func = combinedef(splitted)
 
-    return esc(quote
+    code = esc(quote
         $(struct_def)
+        $(no_reset_inner_func)
+        $(reset_inner_func)
         $(outer_func)
-        $(inner_func)
     end)
+    return code
 end
 
 function node_run(macro_args...)
