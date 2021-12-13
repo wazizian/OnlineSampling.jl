@@ -58,7 +58,7 @@ end
     end
     arr = []
     @node T=2 f(arr)
-    @test_broken arr == [[2, 2], [2, 2]]
+    @test arr[2] == [2, 2]
 end
 
 

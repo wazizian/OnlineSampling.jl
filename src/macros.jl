@@ -87,7 +87,7 @@ function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)::E
     return new_body
 end
 
-function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_symb::Symbol, store_symb::Symbol, body::Expr)::Tuple{Expr, Expr}
+function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_symb::Symbol, store_symb::Symbol, body::Expr)::Tuple{Expr, Expr, Expr}
     # Collect stored variables and insert call to store
     stored_vars = Set{Symbol}()
     new_body = @chain body begin
@@ -101,12 +101,11 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_
         # store the values for the next time step
         postwalk(_) do ex
             (@capture(ex, var_ = val_ ) && var in stored_vars) || return ex
-            pre_set_expr = quote setproperties($(esc(store_symb)), $(esc(var)) = deepcopy($(esc(var)))) end
+            pre_set_expr = quote setproperties($(esc(store_symb)), $(esc(var)) = $(esc(var))) end
             set_expr = Expr(Symbol("hygienic-scope"), pre_set_expr, @__MODULE__)
             return quote
                 begin
                     $(var) = $(val)
-                    # TODO (bug): do not use a copy here but after the node call
                     $(state_symb).nodestates[$(func_id_symb)] = $(set_expr)
                     $(var)
                 end
@@ -132,11 +131,20 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_
             $(stored_vars...)
         end
     end
-    # add the constructore only is stored_vars != emptyset
+    # add the constructore only if stored_vars != emptyset
     full_struct_def = isempty(stored_vars) ? struct_def : quote
         $(struct_def)
         # constructor
         $(struct_symb)() = $(struct_symb)($(init_stored_vars...))
+    end
+
+    # copy code to be called after the end of func
+    # make sure it uses our version of deepcopy, and not the one of our user
+    copy_code = @chain quote $(state_symb).nodestates[$(func_id_symb)] end begin
+        esc(_)
+        quote deepcopy($(_)) end
+        Expr(Symbol("hygienic-scope"), _, @__MODULE__)
+        quote $(state_symb).nodestates[$(func_id_symb)] = $(_) end
     end
 
     # Build reset code
@@ -144,7 +152,7 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, reset_
         $(reset_symb) && ($(state_symb).nodestates[$(func_id_symb)] = $(struct_symb)())
     end
 
-    return full_struct_def, push_front(reset_code, new_body)
+    return full_struct_def, push_front(reset_code, new_body), copy_code
 end
 
 macro node(args...)
@@ -176,20 +184,41 @@ function node_build(splitted)
         $(store_symb) = $(state_symb).nodestates[$(func_id_symb)]
     end
 
-    struct_def, new_body = @chain body begin
+    struct_def, new_body, copy_code = @chain body begin
         push_front(assign_store, _)
         treat_initialized_vars(reset_symb, _)
         treat_node_calls(state_symb, reset_symb, _)
         treat_stored_variables(state_symb, func_id_symb, reset_symb, store_symb, _)
     end
 
+    # Create inner function
+    name = splitted[:name]
+    inner_name = gensym()
+
     splitted[:body] = new_body
-    # Before global espace, splitted[:name] was escaped
-    # splitted[:name] = esc(splitted[:name])
-    new_func = combinedef(splitted)
+    splitted[:name] = inner_name
+    inner_func = combinedef(splitted)
+
+    # Create inner_func call
+    tmp = gensym()
+    inner_func_call = quote
+        $(tmp) = $(inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
+    end
+
+    # Create wrapper func
+    outer_body = quote
+        $(inner_func_call)
+        $(copy_code)
+        $(tmp)
+    end
+    splitted[:body] = outer_body
+    splitted[:name] = name
+    outer_func = combinedef(splitted)
+
     return esc(quote
         $(struct_def)
-        $(new_func)
+        $(outer_func)
+        $(inner_func)
     end)
 end
 
