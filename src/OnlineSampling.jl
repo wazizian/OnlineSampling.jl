@@ -3,6 +3,7 @@ module OnlineSampling
 using Chain
 using MacroTools
 using MacroTools: prewalk, postwalk
+using Cassette
 using Accessors
 
 using Reexport

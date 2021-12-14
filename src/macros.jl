@@ -35,6 +35,25 @@ function unescape(transf, expr_args...)
     end
 end
 
+# Propagation of nothing
+Cassette.@context NothingCtx
+
+nothing_overdub(f, args...) = Cassette.overdub(Cassette.disablehooks(NothingCtx()), f, args...)
+
+function Cassette.overdub(ctx::NothingCtx, f, args...)
+    if !applicable(f, args...)
+        return nothing
+    elseif Cassette.canrecurse(ctx, f, args...)
+        return Cassette.recurse(ctx, f, args...)
+    else
+        return Cassette.fallback(ctx, f, args...)
+    end
+end
+
+function Cassette.overdub(ctx::NothingCtx, ::typeof(nothing_overdub), args...)
+    return Cassette.overdub(ctx, args[1], args[2:end]...)
+end
+
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     initialized_vars = Set{Symbol}()
 
@@ -47,9 +66,23 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
         # make sure we do not try to assign to the var when we reset
         stopwalk(_) do walk, ex
             # important, do not modify special init assignments
-            @capture(ex, @init var_ = val_) && return quote @init $(walk(var)) = $(walk(val)) end
-            @capture(ex, var_ = val_) && var in initialized_vars && return (reset ? walk(val) : quote $(walk(var)) = $(walk(val)) end)
-            return nothing
+            if @capture(ex, @init var_ = val_) 
+                return quote @init $(walk(var)) = $(walk(val)) end
+            elseif @capture(ex, var_ = val_) && var in initialized_vars 
+                walked_var = walk(var)
+                walked_val = walk(val)
+                return (reset ?
+                        # if reset, the value of var = val is actually the init value of var
+                        quote 
+                            begin 
+                                $(walked_val)
+                                $(walked_var)
+                            end
+                        end 
+                        : quote $(walked_var) = $(walked_val) end)
+            else
+                return nothing
+            end
         end
         # init
         postwalk(_) do ex
@@ -105,8 +138,8 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, store_
         # store the values for the next time step
         postwalk(_) do ex
             (@capture(ex, var_ = val_ ) && var in stored_vars) || return ex
-            set_expr = unescape(store_symb, var, var) do e1, e2, e3
-                quote setproperties($(e1), $(e2) =  $(e3)) end
+            set_expr = quote
+                $(@__MODULE__).setproperties($(store_symb), $(var) =  $(var))
             end
             return quote
                 begin
@@ -132,8 +165,8 @@ function create_struct(state_symb::Symbol, func_id_symb::Symbol, stored_vars::Se
     # (to be inserted before func)
     struct_symb = gensym()
     # TODO (bug) use the line below and propagate nothings with cassette 
-    # init_stored_vars = Vector{Nothing}(nothing, length(stored_vars))
-    init_stored_vars = zeros(Int64, length(stored_vars))
+    init_stored_vars = map(_ -> nothing, 1:length(stored_vars))
+    # init_stored_vars = zeros(Int64, length(stored_vars))
     struct_def = quote
         # I don't know why by $(struct_symb) is already escaped below
         struct $(struct_symb)
@@ -150,7 +183,7 @@ function create_struct(state_symb::Symbol, func_id_symb::Symbol, stored_vars::Se
     # copy code to be called after the end of func
     # make sure it uses our version of deepcopy, and not the one of our user
     copy_code = @chain quote $(state_symb).nodestates[$(func_id_symb)] end begin
-        unescape(ex -> quote deepcopy($(ex)) end, _)
+        quote $(@__MODULE__).deepcopy($(_)) end
         quote $(state_symb).nodestates[$(func_id_symb)] = $(_) end
     end
 
@@ -228,11 +261,17 @@ function node_build(splitted)
     reset_inner_func = combinedef(splitted)
 
     # Create inner function calls
+    # TODO (issue) : keywords not supported for now
+    reset_func_call = quote
+        $(@__MODULE__).nothing_overdub($(reset_inner_name), $(splitted[:args]...))
+    end
+
     tmp = gensym()
     inner_func_call = quote
         $(tmp) = 
         if $(reset_symb)
-            $(reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
+            $(reset_func_call)
+            #$(reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
         else
             $(no_reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
         end

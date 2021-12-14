@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [deps]
 Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
+Cassette = "7057c7e9-c182-5462-911a-8362d720325c"
 Chain = "8be319e6-bccf-4806-a6f7-6fae938471bc"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"

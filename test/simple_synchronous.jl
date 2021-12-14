@@ -19,7 +19,7 @@ end
     incr_fun(x::Int)::Int = x + 1
     @assert @isdefined(incr_fun)
 
-    @node function pure_counter()::Int 
+    @node function pure_counter()::Int
         @init x = 1
         x = incr_fun(@prev(x))
     end
@@ -48,7 +48,7 @@ end
         push!(arr, i)
     end
     arr = []
-    @test_broken (@node T=2 f(arr); arr == [true, false])
+    @test (@node T=2 f(arr); arr == [true, false])
 end
 
 @testset "mutable streams" begin
