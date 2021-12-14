@@ -6,11 +6,11 @@
     end
 
     @test @isdefined counter
-    
+
     arr = Vector{Int}()
 
     # call node for 10 iterations
-    @node T=10 counter(arr)
+    @node T = 10 counter(arr)
 
     @test arr == collect(1:10)
 end
@@ -32,13 +32,13 @@ end
 
     @test @isdefined pure_counter
     @test @isdefined counter
-    
+
     arr = Vector{Int}()
 
     # call node for 10 iterations
-    @node T=10 counter(arr)
+    @node T = 10 counter(arr)
 
-    @test arr == cat(collect(1:5), collect(1:5), dims=1)
+    @test arr == cat(collect(1:5), collect(1:5), dims = 1)
 end
 
 @testset "nothing propagation" begin
@@ -48,7 +48,7 @@ end
         push!(arr, i)
     end
     arr = []
-    @test (@node T=2 f(arr); arr == [true, false])
+    @test (@node T = 2 f(arr); arr == [true, false])
 end
 
 @testset "mutable streams" begin
@@ -59,8 +59,6 @@ end
         push!(arr, deepcopy(@prev(m)))
     end
     arr = []
-    @node T=2 f(arr)
+    @node T = 2 f(arr)
     @test arr[2] == [2, 2]
 end
-
-

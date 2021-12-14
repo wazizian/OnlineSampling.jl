@@ -26,3 +26,7 @@ dev_test:
 uninstall:
 	# Uninstall package
 	julia -e "using Pkg; Pkg.rm(\"$(NAME)\")"
+
+format:
+	# Format code
+	julia --project -e "using JuliaFormatter; format(\".\"; verbose=true)"

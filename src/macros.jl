@@ -38,7 +38,8 @@ end
 # Propagation of nothing
 Cassette.@context NothingCtx
 
-nothing_overdub(f, args...) = Cassette.overdub(Cassette.disablehooks(NothingCtx()), f, args...)
+nothing_overdub(f, args...) =
+    Cassette.overdub(Cassette.disablehooks(NothingCtx()), f, args...)
 
 function Cassette.overdub(ctx::NothingCtx, f, args...)
     if !applicable(f, args...)
@@ -66,20 +67,23 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
         # make sure we do not try to assign to the var when we reset
         stopwalk(_) do walk, ex
             # important, do not modify special init assignments
-            if @capture(ex, @init var_ = val_) 
-                return quote @init $(walk(var)) = $(walk(val)) end
-            elseif @capture(ex, var_ = val_) && var in initialized_vars 
+            if @capture(ex, @init var_ = val_)
+                return quote
+                    @init $(walk(var)) = $(walk(val))
+                end
+            elseif @capture(ex, var_ = val_) && var in initialized_vars
                 walked_var = walk(var)
                 walked_val = walk(val)
                 return (reset ?
-                        # if reset, the value of var = val is actually the init value of var
-                        quote 
-                            begin 
-                                $(walked_val)
-                                $(walked_var)
-                            end
-                        end 
-                        : quote $(walked_var) = $(walked_val) end)
+                    # if reset, the value of var = val is actually the init value of var
+                    quote
+                        begin
+                            $(walked_val)
+                            $(walked_var)
+                        end
+                    end : quote
+                        $(walked_var) = $(walked_val)
+                    end)
             else
                 return nothing
             end
@@ -87,7 +91,9 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
         # init
         postwalk(_) do ex
             @capture(ex, @init var_ = val_) || return ex
-            return (reset ? quote $(var) = $(val) end : val)
+            return (reset ? quote
+                $(var) = $(val)
+            end : val)
         end
     end
 
@@ -113,7 +119,9 @@ function treat_node_calls(state_symb::Symbol, reset::Bool, body::Expr)::Expr
         for arg in [reset_cond, id, state_symb]
             insert!(args, 1, arg)
         end
-        return quote $(f)($(args...)) end
+        return quote
+            $(f)($(args...))
+        end
     end
 
     # make sure there are no init left
@@ -124,22 +132,31 @@ function treat_node_calls(state_symb::Symbol, reset::Bool, body::Expr)::Expr
     return new_body
 end
 
-function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, store_symb::Symbol, body::Expr)
+function treat_stored_variables(
+    state_symb::Symbol,
+    func_id_symb::Symbol,
+    store_symb::Symbol,
+    body::Expr,
+)
     # Collect stored variables and insert call to store
     stored_vars = Set{Symbol}()
     new_body = @chain body begin
         postwalk(_) do ex
-            @capture(ex, (@prev e_) | (@prev(e_)) ) || return ex
-            isexpr(e, Symbol) || error("@prev can only be applied to a variable (for now), but found $(ex)")
+            @capture(ex, (@prev e_) | (@prev(e_))) || return ex
+            isexpr(e, Symbol) || error(
+                "@prev can only be applied to a variable (for now), but found $(ex)",
+            )
             push!(stored_vars, e)
-            return quote $(store_symb).$(e) end
+            return quote
+                $(store_symb).$(e)
+            end
         end
 
         # store the values for the next time step
         postwalk(_) do ex
-            (@capture(ex, var_ = val_ ) && var in stored_vars) || return ex
+            (@capture(ex, var_ = val_) && var in stored_vars) || return ex
             set_expr = quote
-                $(@__MODULE__).setproperties($(store_symb), $(var) =  $(var))
+                $(@__MODULE__).setproperties($(store_symb), $(var) = $(var))
             end
             return quote
                 begin
@@ -174,21 +191,31 @@ function create_struct(state_symb::Symbol, func_id_symb::Symbol, stored_vars::Se
         end
     end
     # add the constructor only if stored_vars != emptyset
-    full_struct_def = isempty(stored_vars) ? struct_def : quote
-        $(struct_def)
-        # constructor
-        $(struct_symb)() = $(struct_symb)($(init_stored_vars...))
-    end
+    full_struct_def =
+        isempty(stored_vars) ? struct_def :
+        quote
+            $(struct_def)
+            # constructor
+            $(struct_symb)() = $(struct_symb)($(init_stored_vars...))
+        end
 
     # copy code to be called after the end of func
     # make sure it uses our version of deepcopy, and not the one of our user
-    copy_code = @chain quote $(state_symb).nodestates[$(func_id_symb)] end begin
-        quote $(@__MODULE__).deepcopy($(_)) end
-        quote $(state_symb).nodestates[$(func_id_symb)] = $(_) end
+    copy_code = @chain quote
+        $(state_symb).nodestates[$(func_id_symb)]
+    end begin
+        quote
+            $(@__MODULE__).deepcopy($(_))
+        end
+        quote
+            $(state_symb).nodestates[$(func_id_symb)] = $(_)
+        end
     end
 
     # Build reset code
-    reset_code = quote ($(state_symb).nodestates[$(func_id_symb)] = $(struct_symb)()) end
+    reset_code = quote
+        ($(state_symb).nodestates[$(func_id_symb)] = $(struct_symb)())
+    end
 
     return full_struct_def, copy_code, reset_code
 end
@@ -268,8 +295,7 @@ function node_build(splitted)
 
     tmp = gensym()
     inner_func_call = quote
-        $(tmp) = 
-        if $(reset_symb)
+        $(tmp) = if $(reset_symb)
             $(reset_func_call)
             #$(reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
         else
@@ -309,21 +335,21 @@ function node_run(macro_args...)
     end
     # Create main loop
     if isnothing(n_iterations)
-        loop_creator = body -> quote 
+        loop_creator = body -> quote
             while true
                 $(body)
             end
         end
     else
-        loop_creator = body -> quote 
-            for _ in 1:($(n_iterations)- 1)
+        loop_creator = body -> quote
+            for _ = 1:($(n_iterations)-1)
                 $(body)
             end
         end
     end
 
     state_symb = gensym()
-    
+
     global node_counter
     node_counter += 1
     id = node_counter
@@ -335,7 +361,9 @@ function node_run(macro_args...)
         insert!(args, 1, arg)
     end
 
-    func_call = quote $(esc(f))($(args...)) end
+    func_call = quote
+        $(esc(f))($(args...))
+    end
     loop_code = loop_creator(func_call)
 
     code = quote

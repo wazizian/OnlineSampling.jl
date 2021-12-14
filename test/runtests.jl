@@ -19,7 +19,7 @@ end
 
 include("custom_testset.jl")
 
-@testset TS exit_on_error=exit_on_error "OnlineSampling.jl" begin
+@testset TS exit_on_error = exit_on_error "OnlineSampling.jl" begin
     @testset "simple gaussian" begin
         include(joinpath(testdir, "delayed_sampling/simple_gaussian.jl"))
     end

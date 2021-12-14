@@ -1,4 +1,4 @@
-function primitive_marginalize_child(child::Initialized, parent::Marginalized) 
+function primitive_marginalize_child(child::Initialized, parent::Marginalized)
     child_d = child.cd(parent.d)
     return Marginalized(child, child_d)
 end
@@ -13,18 +13,24 @@ function primitive_marginalize_parent(child::Realized, parent::Marginalized)
     return @set parent.d = new_parent_d
 end
 
-function is_terminal(gm::GraphicalModel{I}, node::AbstractNode{I}) where {I <: Integer}
+function is_terminal(gm::GraphicalModel{I}, node::AbstractNode{I}) where {I<:Integer}
     node isa Marginalized && isnothing(node.marginalized_child)
 end
 
-function is_inv_sat(gm::GraphicalModel{I}, node::AbstractNode) where {I <: Integer}
-    first_inv = !(node isa Marginalized) || (!(has_parent(gm, node)) || get_parent(gm, node) isa Marginalized)
-    n_marginalized_children = count(child -> gm.nodes[child] isa Marginalized, node.children)
+function is_inv_sat(gm::GraphicalModel{I}, node::AbstractNode) where {I<:Integer}
+    first_inv =
+        !(node isa Marginalized) ||
+        (!(has_parent(gm, node)) || get_parent(gm, node) isa Marginalized)
+    n_marginalized_children =
+        count(child -> gm.nodes[child] isa Marginalized, node.children)
     if node isa Marginalized
-        second_inv = (n_marginalized_children == 0 && isnothing(node.marginalized_child)) ||
-                 (n_marginalized_children == 1 && !isnothing(node.marginalized_child) &&
-                  gm.nodes[node.marginalized_child] isa Marginalized &&
-                  node.marginalized_child in node.children)
+        second_inv =
+            (n_marginalized_children == 0 && isnothing(node.marginalized_child)) || (
+                n_marginalized_children == 1 &&
+                !isnothing(node.marginalized_child) &&
+                gm.nodes[node.marginalized_child] isa Marginalized &&
+                node.marginalized_child in node.children
+            )
     else
         second_inv = n_marginalized_children == 0
     end
@@ -32,7 +38,7 @@ function is_inv_sat(gm::GraphicalModel{I}, node::AbstractNode) where {I <: Integ
     return first_inv && second_inv && parent_inv
 end
 
-function is_inv_sat(gm::GraphicalModel{I}) where {I <: Integer}
+function is_inv_sat(gm::GraphicalModel{I}) where {I<:Integer}
     return all(node -> is_inv_sat(gm, node), gm.nodes)
 end
 

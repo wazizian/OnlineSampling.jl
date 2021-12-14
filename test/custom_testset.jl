@@ -2,7 +2,7 @@ using Test
 
 struct TS <: Test.AbstractTestSet end
 
-function TS(desc; exit_on_error=false)
+function TS(desc; exit_on_error = false)
     if exit_on_error
         Test.FallbackTestSet()
     else

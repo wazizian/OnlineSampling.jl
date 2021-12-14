@@ -129,7 +129,7 @@ function observe!(gm::GraphicalModel, node::AbstractNode, value::AbstractArray)
     # update_loglikelihood!(gm, ll)
     @chain node begin
         dist!(gm, _)
-        realize!(gm, _, value) 
+        realize!(gm, _, value)
     end
 end
 
@@ -151,7 +151,11 @@ function initialize!(gm::GraphicalModel{I}, d::Distribution) where {I}
     return new_gm, id
 end
 
-function initialize!(gm::GraphicalModel{I}, cd::ConditionalDistribution, parent_id::I) where {I}
+function initialize!(
+    gm::GraphicalModel{I},
+    cd::ConditionalDistribution,
+    parent_id::I,
+) where {I}
     new_gm, id = new_id(gm)
     parent = new_gm.nodes[parent_id]
     parent_child_ref = push!(parent.children, id)

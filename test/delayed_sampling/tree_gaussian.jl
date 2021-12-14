@@ -2,9 +2,9 @@
     gm = GraphicalModel(Int)
     @test is_inv_sat(gm)
 
-    μ = [0.]
+    μ = [0.0]
     Σ = ScalMat(1, 1.0)
-    id = 1.0*I(1)
+    id = 1.0 * I(1)
 
     gm, x1 = initialize!(gm, MvNormal(μ, Σ))
     @test is_inv_sat(gm)
@@ -18,14 +18,14 @@
     gm, x4 = initialize!(gm, CdMvNormal(id, μ, Σ), x2)
     @test is_inv_sat(gm)
 
-    observe!(gm, x3, [1.])
+    observe!(gm, x3, [1.0])
     @test is_inv_sat(gm)
 
     x1_node = gm.nodes[x1]
     @test isnothing(x1_node.marginalized_child)
     @test x1_node isa Marginalized
-    
-    observe!(gm, x4, [1.])
+
+    observe!(gm, x4, [1.0])
     @test is_inv_sat(gm)
 
     nodes = map(i -> gm.nodes[i], [x1, x2, x3, x4])
@@ -39,9 +39,9 @@ end
     gm = GraphicalModel(Int)
     @test is_inv_sat(gm)
 
-    μ = [0.]
+    μ = [0.0]
     Σ = ScalMat(1, 1.0)
-    id = 1.0*I(1)
+    id = 1.0 * I(1)
 
     gm, x1 = initialize!(gm, MvNormal(μ, Σ))
     @test is_inv_sat(gm)
@@ -55,7 +55,7 @@ end
     gm, x4 = initialize!(gm, CdMvNormal(id, μ, Σ), x2)
     @test is_inv_sat(gm)
 
-    observe!(gm, x4, [1.])
+    observe!(gm, x4, [1.0])
     @test is_inv_sat(gm)
 
     x1_node = gm.nodes[x1]
@@ -64,8 +64,8 @@ end
     x2_node = gm.nodes[x2]
     @test isnothing(x2_node.marginalized_child)
     @test x2_node isa Marginalized
-    
-    observe!(gm, x3, [1.])
+
+    observe!(gm, x3, [1.0])
     @test is_inv_sat(gm)
 
     nodes = map(i -> gm.nodes[i], [x1, x2, x3, x4])
