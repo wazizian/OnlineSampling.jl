@@ -21,8 +21,19 @@ function stopwalk(f, x::Expr)
     y = f(self, x)
     return isnothing(y) ? Expr(x.head, map(x -> stopwalk(f, x), x.args)...) : y
 end
-# Ignore x if not an exp
+# Ignore x if not an expr
 stopwalk(f, x) = x
+
+const unesc = Symbol("hygienic-scope")
+
+function unescape(transf, expr_args...)
+    # unescape the code transformation transf
+    return @chain expr_args begin
+        map(esc, _)
+        transf(_...)
+        Expr(unesc, _, @__MODULE__)
+    end
+end
 
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     initialized_vars = Set{Symbol}()
@@ -94,8 +105,9 @@ function treat_stored_variables(state_symb::Symbol, func_id_symb::Symbol, store_
         # store the values for the next time step
         postwalk(_) do ex
             (@capture(ex, var_ = val_ ) && var in stored_vars) || return ex
-            pre_set_expr = quote setproperties($(esc(store_symb)), $(esc(var)) = $(esc(var))) end
-            set_expr = Expr(Symbol("hygienic-scope"), pre_set_expr, @__MODULE__)
+            set_expr = unescape(store_symb, var, var) do e1, e2, e3
+                quote setproperties($(e1), $(e2) =  $(e3)) end
+            end
             return quote
                 begin
                     $(var) = $(val)
@@ -138,9 +150,7 @@ function create_struct(state_symb::Symbol, func_id_symb::Symbol, stored_vars::Se
     # copy code to be called after the end of func
     # make sure it uses our version of deepcopy, and not the one of our user
     copy_code = @chain quote $(state_symb).nodestates[$(func_id_symb)] end begin
-        esc(_)
-        quote deepcopy($(_)) end
-        Expr(Symbol("hygienic-scope"), _, @__MODULE__)
+        unescape(ex -> quote deepcopy($(ex)) end, _)
         quote $(state_symb).nodestates[$(func_id_symb)] = $(_) end
     end
 
