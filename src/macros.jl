@@ -55,6 +55,12 @@ function Cassette.overdub(ctx::NothingCtx, ::typeof(nothing_overdub), args...)
     return Cassette.overdub(ctx, args[1], args[2:end]...)
 end
 
+# Manual (and temporary) workaround for 
+# https://github.com/JuliaLabs/Cassette.jl/issues/138
+function Cassette.overdub(ctx::NothingCtx, ::typeof(println), args...)
+    return Cassette.fallback(ctx, println, args...)
+end
+
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     initialized_vars = Set{Symbol}()
 
@@ -148,6 +154,9 @@ function treat_stored_variables(
             )
             push!(stored_vars, e)
             return quote
+                # Important, do not se directly in the global state structure,
+                # as the current value of the vars are being recorded
+                # in the global structure
                 $(store_symb).$(e)
             end
         end
@@ -156,7 +165,7 @@ function treat_stored_variables(
         postwalk(_) do ex
             (@capture(ex, var_ = val_) && var in stored_vars) || return ex
             set_expr = quote
-                $(@__MODULE__).setproperties($(store_symb), $(var) = $(var))
+                $(@__MODULE__).setproperties($(state_symb).nodestates[$(func_id_symb)], $(var) = $(var))
             end
             return quote
                 begin

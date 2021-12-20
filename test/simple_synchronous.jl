@@ -62,3 +62,65 @@ end
     @node T = 2 f(arr)
     @test arr[2] == [2, 2]
 end
+
+@testset "delayed counter" begin
+    @node function f(arr)
+        @init x = 0
+        @init y = 0
+        x = (@prev x) + 1
+        y = @prev x
+        push!(arr, y)
+    end
+    arr = []
+    @node T = 5 f(arr)
+    @test arr == vcat([0], collect(0:3))
+end
+
+@testset "call nothing & print" begin
+    # Test workaround for Cassette.jl issue with llvm intrinsic call
+    OnlineSampling.nothing_overdub(println, nothing)
+end
+
+@testset "reversed def & prev" begin
+    @node function f(arr)
+        @init y = 0
+        y = @prev(y) + 1
+        push!(arr, @prev(y))
+    end
+    arr = []
+    @node T = 5 f(arr)
+    @test arr[2:end] == collect(0:3)
+end
+
+@testset "pathological prev" begin
+    @node function f(arr)
+        @init x = 0
+        @init y = 0
+        y = @prev x
+        x = ((a, b) -> (push!(arr, a); b))(y, (@prev y) + 1)
+        @test !isnothing(x)
+    end
+    arr = []
+    @node T = 5 f(arr)
+    @test arr == [0, 0, 1, 1, 2]
+end
+
+@testset "one line counter" begin
+    @node function f(arr)
+        x = (@prev x) + (@init x = 1)
+        push!(arr, x)
+    end
+    arr = []
+    @node T = 5 f(arr)
+    @test arr == collect(1:5)
+end
+
+@testset "side-effect init" begin
+    @node function f(arr)
+        @init x = (push!(arr, 0); 1)
+    end
+    arr = []
+    @node T = 5 f(arr)
+    # not sure this is the right design decision
+    @test arr == fill(0, 5)
+end
