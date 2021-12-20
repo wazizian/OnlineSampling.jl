@@ -1,0 +1,23 @@
+name: Run tests
+
+on: [push, pull_request]
+
+jobs, :
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        julia-version: ['1.6']
+        os: [ubuntu-latest, macOS-latest]
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+      - name: Install current version
+        run: make develop
+      - name: Run tests
+        run: make test
