@@ -33,3 +33,16 @@ function unescape(transf, expr_args...)
     end
 end
 
+# Generate deterministic struct types
+# TODO (impr): mark as const (except during testing)
+global node_mem_struct = gensym()
+function get_node_mem_struct_type(node_name::Symbol)
+    global node_mem_struct
+    return Symbol(node_mem_struct, node_name)
+end
+
+# For testing purposes
+function _reset_node_mem_struct_types()
+    global node_mem_struct
+    node_mem_struct = gensym()
+end

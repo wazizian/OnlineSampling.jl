@@ -25,15 +25,11 @@ function node_run(macro_args...)
     end
 
     state_symb = gensym()
-
-    global node_counter
-    node_counter += 1
-    id = node_counter
-
+    state_type_symb = get_node_mem_struct_type(f)
     reset_symb = gensym()
 
     map!(esc, args, args)
-    for arg in [reset_symb, id, state_symb]
+    for arg in [reset_symb, state_symb]
         insert!(args, 1, arg)
     end
 
@@ -43,7 +39,7 @@ function node_run(macro_args...)
     loop_code = loop_creator(func_call)
 
     code = quote
-        $(state_symb) = State(Vector{Any}(undef, $(node_counter)))
+        $(state_symb) = $(esc(state_type_symb))()
         $(reset_symb) = true
         $(func_call)
         $(reset_symb) = false

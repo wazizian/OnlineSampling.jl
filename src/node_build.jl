@@ -1,5 +1,3 @@
-global node_counter = 0
-
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     initialized_vars = Set{Symbol}()
 
@@ -50,18 +48,20 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     return new_body
 end
 
-function treat_node_calls(state_symb::Symbol, reset::Bool, body::Expr)::Expr
+function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
+    # the dict below maps unique call symbols to struct types
+    node_calls = Dict{Symbol,Symbol}()
     new_body = postwalk(body) do ex
         @capture(ex, (@node cond_ f_(args__)) | (@node f_(args__))) || return ex
+        isexpr(f, Symbol) || error("Ill formed @node call: found $(ex)")
 
         # get new id
-        global node_counter
-        node_counter += 1
-        id = node_counter
+        call_id = gensym()
+        node_calls[call_id] = get_node_mem_struct_type(f)
 
         # integrate reset condition
-        reset_cond = isnothing(cond) ? :($(reset)) : :($(reset) || $(cond))
-        for arg in [reset_cond, id, state_symb]
+        reset_cond = isnothing(cond) ? :($(reset_symb)) : :($(reset_symb) || $(cond))
+        for arg in [reset_cond, :($(state_symb).$(call_id))]
             insert!(args, 1, arg)
         end
         return quote
@@ -74,31 +74,31 @@ function treat_node_calls(state_symb::Symbol, reset::Bool, body::Expr)::Expr
         @capture(ex, @node) && error("Ill formed @node call inside node: found $(ex)")
     end
 
-    return new_body
+    return node_calls, new_body
 end
 
-function collect_stored_variables(
-    store_symb::Symbol,
-    body::Expr
-)
+function collect_stored_variables(store_symb::Symbol, body::Expr)
     # Collect stored variables, normalize & insert call to store
     stored_vars = Set{Symbol}()
     new_body = postwalk(body) do ex
         @capture(ex, (@prev e_) | (@prev(e_))) || return ex
-        isexpr(e, Symbol) || error("Ill-formed @prev: got $(ex) but prev only supports variables")
+        isexpr(e, Symbol) ||
+            error("Ill-formed @prev: got $(ex) but prev only supports variables")
         push!(stored_vars, e)
-        return quote $(store_symb).$(e) end
-   end
+        return quote
+            $(store_symb).$(e)
+        end
+    end
     # make sure there are no prev left
     prewalk(new_body) do ex
         @capture(ex, @prev _) && error("Ill formed @prev call inside node: found $(ex)")
     end
     return stored_vars, new_body
 end
-    
+
 function store_stored_variables(
     state_symb::Symbol,
-    func_id_symb::Symbol,
+    store_symb::Symbol,
     stored_vars::Set{Symbol},
     body::Expr,
 )
@@ -106,102 +106,132 @@ function store_stored_variables(
     return postwalk(body) do ex
         (@capture(ex, var_ = val_) && var in stored_vars) || return ex
         set_expr = quote
-            $(@__MODULE__).setproperties($(state_symb).nodestates[$(func_id_symb)], $(var) = $(var))
+            $(@__MODULE__).setproperties($(state_symb).store, $(var) = $(var))
         end
         return quote
             begin
                 $(var) = $(val)
-                $(state_symb).nodestates[$(func_id_symb)] = $(set_expr)
+                $(state_symb).store = $(set_expr)
                 $(var)
             end
         end
     end
 end
 
-function create_struct(state_symb::Symbol, func_id_symb::Symbol, stored_vars::Set{Symbol})
+function create_structs(
+    node_name::Symbol,
+    state_symb::Symbol,
+    stored_vars::Set{Symbol},
+    node_calls::Dict{Symbol,Symbol},
+)
     # TODO (impr) use type info
-    # Build stored struct
+
+    # Build the struct for the current node
     # (to be inserted before func)
-    struct_symb = gensym()
+    # It is a mutable struct, whose name is deterministic
+    # and given by get_node_mem_struct_type(node_name), and which contains,
+    # 1. An immutable struct which stores the variables which appear in prev
+    # 2. The mutable structs of the nodes called inside
+
+    # First, we build the structure for the stored variables
+    store_struct_symb = gensym()
     init_stored_vars = map(_ -> nothing, 1:length(stored_vars))
-    struct_def = quote
-        struct $(struct_symb)
+    store_struct_def = quote
+        struct $(store_struct_symb)
             $(stored_vars...)
         end
     end
     # add the constructor only if stored_vars != emptyset
-    full_struct_def =
-        isempty(stored_vars) ? struct_def :
+    full_store_struct_def =
+        isempty(stored_vars) ? store_struct_def :
         quote
-            $(struct_def)
+            $(store_struct_def)
             # constructor
-            $(struct_symb)() = $(struct_symb)($(init_stored_vars...))
+            $(store_struct_symb)() = $(store_struct_symb)($(init_stored_vars...))
         end
+
+    # Then, we build the full structure for the node
+    mem_struct_symb = get_node_mem_struct_type(node_name)
+    node_call_fields = [:($(id)::$(type)) for (id, type) in node_calls]
+    node_call_inits = [:($(type)()) for type in values(node_calls)]
+    mem_struct_def = quote
+        mutable struct $(mem_struct_symb)
+            store::$(store_struct_symb)
+            $(node_call_fields...)
+        end
+        # constructor
+        $(mem_struct_symb)() =
+            $(mem_struct_symb)($(store_struct_symb)(), $(node_call_inits...))
+    end
+
+    struct_defs = quote
+        $(full_store_struct_def)
+        $(mem_struct_def)
+    end
 
     # copy code to be called after the end of func
     # make sure it uses our version of deepcopy, and not the one of our user
     copy_code = @chain quote
-        $(state_symb).nodestates[$(func_id_symb)]
+        $(state_symb).store
     end begin
         quote
             $(@__MODULE__).deepcopy($(_))
         end
         quote
-            $(state_symb).nodestates[$(func_id_symb)] = $(_)
+            $(state_symb).store = $(_)
         end
     end
 
     # Build reset code
+    node_call_resets = [:($(state_symb).$(id) = $(type)()) for (id, type) in node_calls]
     reset_code = quote
-        ($(state_symb).nodestates[$(func_id_symb)] = $(struct_symb)())
+        $(state_symb).store = $(store_struct_symb)()
+        $(node_call_resets...)
     end
 
-    return full_struct_def, copy_code, reset_code
+    return mem_struct_symb, struct_defs, copy_code, reset_code
 end
 
 function node_build(splitted)
-    # Modify arguments
-    state_symb = gensym()
-    func_id_symb = gensym()
-    reset_symb = gensym()
-    # TODO (impr) : add types
-    for symb in [func_id_symb, state_symb]
-        insert!(splitted[:args], 1, symb)
-    end
-
+    node_name = splitted[:name]
     body = splitted[:body]
 
+    state_symb = gensym()
     store_symb = gensym()
     assign_store = quote
-        $(store_symb) = $(state_symb).nodestates[$(func_id_symb)]
+        $(store_symb) = $(state_symb).store
     end
 
-    stored_vars, new_body = collect_stored_variables(store_symb, body)
+    # common pass
+    inner_reset_symb = gensym()
+    stored_vars, (node_calls, new_body) = @chain body begin
+        push_front(assign_store, _)
+        collect_stored_variables(store_symb, _)
+        _[1], treat_node_calls(state_symb, inner_reset_symb, _[2])
+    end
 
-    global node_counter
-    backup_node_coutner = node_counter
+    # create structs
+    struct_symb, structs_def, copy_code, reset_code =
+        create_structs(node_name, state_symb, stored_vars, node_calls)
 
+    # not reset pass
     no_reset_body = @chain new_body begin
-        push_front(assign_store, _)
+        push_front(:($(inner_reset_symb) = false), _)
         treat_initialized_vars(false, _)
-        treat_node_calls(state_symb, false, _)
-        store_stored_variables(state_symb, func_id_symb, stored_vars, _)
+        store_stored_variables(state_symb, store_symb, stored_vars, _)
     end
 
-    node_counter = backup_node_coutner
-
-    struct_def, copy_code, reset_code = create_struct(state_symb, func_id_symb, stored_vars)
-
+    # reset pass
     reset_body = @chain new_body begin
-        push_front(assign_store, _)
+        push_front(:($(inner_reset_symb) = true), _)
         treat_initialized_vars(true, _)
-        treat_node_calls(state_symb, true, _)
         push_front(reset_code, _)
-        store_stored_variables(state_symb, func_id_symb, stored_vars, _)
+        store_stored_variables(state_symb, store_symb, stored_vars, _)
     end
 
     # Create inner functions
     name = splitted[:name]
+    insert!(splitted[:args], 1, :($(state_symb)::$(struct_symb)))
 
     no_reset_inner_name = gensym()
     reset_inner_name = gensym()
@@ -223,8 +253,9 @@ function node_build(splitted)
     end
 
     tmp = gensym()
+    outer_reset_symb = gensym()
     inner_func_call = quote
-        $(tmp) = if $(reset_symb)
+        $(tmp) = if $(outer_reset_symb)
             $(reset_func_call)
         else
             $(no_reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
@@ -237,13 +268,13 @@ function node_build(splitted)
         $(copy_code)
         $(tmp)
     end
-    insert!(splitted[:args], 3, reset_symb)
     splitted[:body] = outer_body
     splitted[:name] = name
+    insert!(splitted[:args], 2, :($(outer_reset_symb)::Bool))
     outer_func = combinedef(splitted)
 
     code = esc(quote
-        $(struct_def)
+        $(structs_def)
         $(no_reset_inner_func)
         $(reset_inner_func)
         $(outer_func)
