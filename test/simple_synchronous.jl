@@ -84,7 +84,7 @@ end
 @testset "call nothing & print" begin
     _reset_node_mem_struct_types()
     # Test workaround for Cassette.jl issue with llvm intrinsic call
-    OnlineSampling.nothing_overdub(println, nothing)
+    OnlineSampling.nothing_removal(println, nothing)
 end
 
 @testset "reversed def & prev" begin

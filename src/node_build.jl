@@ -249,7 +249,7 @@ function node_build(splitted)
     # Create inner function calls
     # TODO (issue) : keywords not supported for now
     reset_func_call = quote
-        $(@__MODULE__).nothing_overdub($(reset_inner_name), $(splitted[:args]...))
+        $(@__MODULE__).nothing_removal($(reset_inner_name), $(splitted[:args]...))
     end
 
     tmp = gensym()
