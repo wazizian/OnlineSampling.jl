@@ -14,10 +14,11 @@ include("delayed_sampling/DelayedSampling.jl")
 include("node_structs.jl")
 include("macro_utils.jl")
 include("nothing_removal.jl")
+include("observe.jl")
 include("node_build.jl")
 include("node_run.jl")
 include("macros.jl")
 
-export @node
+export @node, @init, @prev, @observe
 
 end

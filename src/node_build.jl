@@ -1,3 +1,25 @@
+function treat_observe_calls(state_symb::Symbol, body::Expr)
+    # Replace @observe statements with calls to internal_observe
+    any_observe = false
+    new_body = postwalk(body) do ex
+        @capture(ex, (@observe var_ val_) | (@observe(var_, val_))) || return ex
+        any_observe = true
+        # val is allowed to be an arbitrary Iterator
+        # see https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-iteration
+        @gensym next_symb item_symb iter_state_symb iter_symb
+        return quote
+            $(iter_symb) = $(val)
+            @init $(next_symb) = $(@__MODULE__).iterate($(iter_symb))
+            $(next_symb) = $(@__MODULE__).iterate($(iter_symb), (@prev $(next_symb))[2])
+            $(next_symb) == nothing && error("Not enough observations in $(val)")
+            $(item_symb), $(iter_state_symb) = $(next_symb)
+            $(state_symb).logscore +=
+                $(@__MODULE__).internal_observe($(var), $(item_symb))
+        end
+    end
+    return any_observe, new_body
+end
+
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     initialized_vars = Set{Symbol}()
 
@@ -64,8 +86,16 @@ function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
         for arg in [reset_cond, :($(state_symb).$(call_id))]
             insert!(args, 1, arg)
         end
+
+        # update the score of the current node
+        update_score = quote
+            $(state_symb).logscore += $(state_symb).$(call_id).logscore
+        end
+        tmp = gensym()
         return quote
-            $(f)($(args...))
+            $(tmp) = $(f)($(args...))
+            $(update_score)
+            $(tmp)
         end
     end
 
@@ -156,12 +186,13 @@ function create_structs(
     node_call_inits = [:($(type)()) for type in values(node_calls)]
     mem_struct_def = quote
         mutable struct $(mem_struct_symb)
+            logscore::Float64
             store::$(store_struct_symb)
             $(node_call_fields...)
         end
         # constructor
         $(mem_struct_symb)() =
-            $(mem_struct_symb)($(store_struct_symb)(), $(node_call_inits...))
+            $(mem_struct_symb)(0.0, $(store_struct_symb)(), $(node_call_inits...))
     end
 
     struct_defs = quote
@@ -204,10 +235,11 @@ function node_build(splitted)
 
     # common pass
     inner_reset_symb = gensym()
-    stored_vars, (node_calls, new_body) = @chain body begin
+    any_observe, stored_vars, (node_calls, new_body) = @chain body begin
         push_front(assign_store, _)
-        collect_stored_variables(store_symb, _)
-        _[1], treat_node_calls(state_symb, inner_reset_symb, _[2])
+        treat_observe_calls(state_symb, _)
+        _[1], collect_stored_variables(store_symb, _[2])
+        _[1], _[2][1], treat_node_calls(state_symb, inner_reset_symb, _[2][2])
     end
 
     # create structs
@@ -262,8 +294,14 @@ function node_build(splitted)
         end
     end
 
+    # Reset score
+    reinit_score = quote
+        $(state_symb).logscore = 0.0
+    end
+
     # Create wrapper func
     outer_body = quote
+        $(reinit_score)
         $(inner_func_call)
         $(copy_code)
         $(tmp)
@@ -279,5 +317,6 @@ function node_build(splitted)
         $(reset_inner_func)
         $(outer_func)
     end)
+    # sh(code)
     return code
 end

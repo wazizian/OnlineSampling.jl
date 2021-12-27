@@ -1,5 +1,8 @@
 # Propagation of nothing
+
 ftypehasmethod(ftype, argtypes...) =
+# Determines if the function f whose type is ftype has a method
+# for arguments of types argtypes
 # Inspired by the code of IRTools.meta
     ftype.name.module === Core.Compiler ||
     ftype <: Core.Builtin ||
@@ -11,14 +14,20 @@ function dummy(args...)
 end
 
 IRTools.@dynamo function nothing_dynamo(ftype, argtypes...)
+    @assert ftype != typeof(nothing_dynamo)
     isapplicable = ftypehasmethod(ftype, argtypes...)
+    # @show (ftype, argtypes, isapplicable)
     if !isapplicable
         return IRTools.IR(typeof(dummy), argtypes...)
     end
     ir = IRTools.IR(ftype, argtypes...)
     ir == nothing && return nothing
+    # @show ir
     IRTools.recurse!(ir)
     return ir
 end
 
 nothing_removal(f, args...) = nothing_dynamo(f, args...)
+
+# Manual workarounds
+Base.iterate(::A, ::Nothing) where {A<:AbstractArray} = nothing

@@ -6,6 +6,10 @@ macro prev(args...)
     error("Ill-formed @prev: got @prev $(args...)")
 end
 
+macro observe(args...)
+    error("Ill-formed @observe: got @observe $(args...)")
+end
+
 macro node(args...)
     @assert !isempty(args)
     func = args[end]

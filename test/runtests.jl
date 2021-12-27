@@ -30,4 +30,7 @@ include("custom_testset.jl")
     @testset "synchronous constructs" begin
         include(joinpath(testdir, "simple_synchronous.jl"))
     end
+    @testset "observe" begin
+        include(joinpath(testdir, "observe.jl"))
+    end
 end

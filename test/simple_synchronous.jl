@@ -81,10 +81,10 @@ end
     @test arr == vcat([0], collect(0:3))
 end
 
-@testset "call nothing & print" begin
+@testset "nothing edge cases" begin
     _reset_node_mem_struct_types()
-    # Test workaround for Cassette.jl issue with llvm intrinsic call
     OnlineSampling.nothing_removal(println, nothing)
+    OnlineSampling.nothing_removal(Base.iterate, [1.0], nothing)
 end
 
 @testset "reversed def & prev" begin
