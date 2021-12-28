@@ -4,6 +4,7 @@ using Chain
 using MacroTools
 using MacroTools: prewalk, postwalk
 using IRTools
+using IRTools: @dynamo, IR, recurse!
 using Accessors
 
 using Reexport

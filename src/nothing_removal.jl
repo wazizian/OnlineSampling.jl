@@ -13,17 +13,17 @@ function dummy(args...)
     return
 end
 
-IRTools.@dynamo function nothing_dynamo(ftype, argtypes...)
+@dynamo function nothing_dynamo(ftype, argtypes...)
     @assert ftype != typeof(nothing_dynamo)
     isapplicable = ftypehasmethod(ftype, argtypes...)
     # @show (ftype, argtypes, isapplicable)
     if !isapplicable
-        return IRTools.IR(typeof(dummy), argtypes...)
+        return IR(typeof(dummy), argtypes...)
     end
-    ir = IRTools.IR(ftype, argtypes...)
+    ir = IR(ftype, argtypes...)
     ir == nothing && return nothing
     # @show ir
-    IRTools.recurse!(ir)
+    recurse!(ir)
     return ir
 end
 
