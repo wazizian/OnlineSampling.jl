@@ -83,8 +83,14 @@ end
 
 @testset "nothing edge cases" begin
     _reset_node_mem_struct_types()
-    OnlineSampling.nothing_removal(println, nothing)
-    OnlineSampling.nothing_removal(Base.iterate, [1.0], nothing)
+    OnlineSampling.ir_pass(println, OnlineSampling.notinit)
+    @test OnlineSampling.ir_pass(Base.iterate, [1.0], OnlineSampling.notinit) ==
+          OnlineSampling.notinit
+    function f(x)
+        y, z = x
+        return z
+    end
+    @test OnlineSampling.ir_pass(f, OnlineSampling.notinit) == OnlineSampling.notinit
 end
 
 @testset "reversed def & prev" begin

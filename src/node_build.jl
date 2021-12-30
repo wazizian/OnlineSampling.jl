@@ -1,23 +1,26 @@
+"""
+    Replace [@observe](@ref) statements with calls to [internal_observe](@ref)
+    Note that it must be called before the pass on nodes.
+"""
 function treat_observe_calls(state_symb::Symbol, body::Expr)
-    # Replace @observe statements with calls to internal_observe
-    any_observe = false
-    new_body = postwalk(body) do ex
+    return postwalk(body) do ex
         @capture(ex, (@observe var_ val_) | (@observe(var_, val_))) || return ex
-        any_observe = true
-        # val is allowed to be an arbitrary Iterator
-        # see https://docs.julialang.org/en/v1/manual/interfaces/#man-interface-iteration
-        @gensym next_symb item_symb iter_state_symb iter_symb
         return quote
-            $(iter_symb) = $(val)
-            @init $(next_symb) = $(@__MODULE__).iterate($(iter_symb))
-            $(next_symb) = $(@__MODULE__).iterate($(iter_symb), (@prev $(next_symb))[2])
-            $(next_symb) == nothing && error("Not enough observations in $(val)")
-            $(item_symb), $(iter_state_symb) = $(next_symb)
-            $(state_symb).logscore +=
-                $(@__MODULE__).internal_observe($(var), $(item_symb))
+            $(state_symb).logscore += @node $(@__MODULE__).observe($(var), $(val))
         end
     end
-    return any_observe, new_body
+end
+
+"""
+    Replace calls to rand with [internal_rand](@ref)
+"""
+function treat_rand_calls(body::Expr)
+    return postwalk(body) do ex
+        @capture(ex, rand(d_)) || return ex
+        return quote
+            $(@__MODULE__).internal_rand($(d))
+        end
+    end
 end
 
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
@@ -72,10 +75,9 @@ end
 
 function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
     # the dict below maps unique call symbols to struct types
-    node_calls = Dict{Symbol,Symbol}()
+    node_calls = Dict{Symbol,Union{Expr,Symbol}}()
     new_body = postwalk(body) do ex
         @capture(ex, (@node cond_ f_(args__)) | (@node f_(args__))) || return ex
-        isexpr(f, Symbol) || error("Ill formed @node call: found $(ex)")
 
         # get new id
         call_id = gensym()
@@ -152,7 +154,7 @@ function create_structs(
     node_name::Symbol,
     state_symb::Symbol,
     stored_vars::Set{Symbol},
-    node_calls::Dict{Symbol,Symbol},
+    node_calls::Dict{Symbol,Union{Expr,Symbol}},
 )
     # TODO (impr) use type info
 
@@ -165,7 +167,7 @@ function create_structs(
 
     # First, we build the structure for the stored variables
     store_struct_symb = gensym()
-    init_stored_vars = map(_ -> nothing, 1:length(stored_vars))
+    init_stored_vars = map(_ -> notinit, 1:length(stored_vars))
     store_struct_def = quote
         struct $(store_struct_symb)
             $(stored_vars...)
@@ -223,6 +225,12 @@ function create_structs(
     return mem_struct_symb, struct_defs, copy_code, reset_code
 end
 
+# This call dos not do anything but is used to mark
+# a body as a node body, useful for later passes
+function node_marker()
+    return
+end
+
 function node_build(splitted)
     node_name = splitted[:name]
     body = splitted[:body]
@@ -235,11 +243,12 @@ function node_build(splitted)
 
     # common pass
     inner_reset_symb = gensym()
-    any_observe, stored_vars, (node_calls, new_body) = @chain body begin
+    stored_vars, (node_calls, new_body) = @chain body begin
         push_front(assign_store, _)
         treat_observe_calls(state_symb, _)
-        _[1], collect_stored_variables(store_symb, _[2])
-        _[1], _[2][1], treat_node_calls(state_symb, inner_reset_symb, _[2][2])
+        treat_rand_calls
+        collect_stored_variables(store_symb, _)
+        _[1], treat_node_calls(state_symb, inner_reset_symb, _[2])
     end
 
     # create structs
@@ -248,17 +257,19 @@ function node_build(splitted)
 
     # not reset pass
     no_reset_body = @chain new_body begin
-        push_front(:($(inner_reset_symb) = false), _)
         treat_initialized_vars(false, _)
         store_stored_variables(state_symb, store_symb, stored_vars, _)
+        push_front(:($(inner_reset_symb) = false), _)
+        push_front(:($(@__MODULE__).node_marker()), _)
     end
 
     # reset pass
     reset_body = @chain new_body begin
-        push_front(:($(inner_reset_symb) = true), _)
         treat_initialized_vars(true, _)
         push_front(reset_code, _)
         store_stored_variables(state_symb, store_symb, stored_vars, _)
+        push_front(:($(inner_reset_symb) = true), _)
+        push_front(:($(@__MODULE__).node_marker()), _)
     end
 
     # Create inner functions
@@ -279,16 +290,14 @@ function node_build(splitted)
     reset_inner_func = combinedef(splitted)
 
     # Create inner function calls
-    # TODO (issue) : keywords not supported for now
-    reset_func_call = quote
-        $(@__MODULE__).nothing_removal($(reset_inner_name), $(splitted[:args]...))
-    end
+    # Remove type annotation in arg
+    splitted[:args][1] = :($(state_symb))
 
     tmp = gensym()
     outer_reset_symb = gensym()
     inner_func_call = quote
         $(tmp) = if $(outer_reset_symb)
-            $(reset_func_call)
+            $(reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
         else
             $(no_reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
         end
@@ -301,6 +310,8 @@ function node_build(splitted)
 
     # Create wrapper func
     outer_body = quote
+        # mark as node for later passes
+        $(@__MODULE__).node_marker()
         $(reinit_score)
         $(inner_func_call)
         $(copy_code)
@@ -308,6 +319,7 @@ function node_build(splitted)
     end
     splitted[:body] = outer_body
     splitted[:name] = name
+    splitted[:args][1] = :($(state_symb)::$(struct_symb))
     insert!(splitted[:args], 2, :($(outer_reset_symb)::Bool))
     outer_func = combinedef(splitted)
 
@@ -315,8 +327,10 @@ function node_build(splitted)
         $(structs_def)
         $(no_reset_inner_func)
         $(reset_inner_func)
-        $(outer_func)
+        # Redirect documentation of @node definitions
+        Core.@__doc__($(outer_func))
     end)
     # sh(code)
+    # println(postwalk(rmlines, code))
     return code
 end

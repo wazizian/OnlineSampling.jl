@@ -21,3 +21,8 @@ macro node(args...)
     end
     return node_build(splitted)
 end
+
+macro node_ir(args...)
+    # For testing purposes
+    return node_run_ir(args...)
+end

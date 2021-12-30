@@ -1,3 +1,6 @@
+function build_call(f, args...)
+    return :($(@__MODULE__).ir_pass($(f), $(args...)))
+end
 
 function node_run(macro_args...)
     #TODO: handle iterable input, save output...
@@ -33,9 +36,7 @@ function node_run(macro_args...)
         insert!(args, 1, arg)
     end
 
-    func_call = quote
-        $(esc(f))($(args...))
-    end
+    func_call = build_call(esc(f), args...)
     loop_code = loop_creator(func_call)
 
     code = quote
@@ -44,6 +45,37 @@ function node_run(macro_args...)
         $(func_call)
         $(reset_symb) = false
         $(loop_code)
+    end
+    return code
+end
+
+"""
+    Returns the IR of the (outer) node function (for testing & debug purposes)
+"""
+function node_run_ir(macro_args...)
+    call = macro_args[end]
+    @capture(call, f_(args__)) || error("Improper usage of @node_ir with $(call)")
+
+    irpass = :(true)
+    for macro_arg in macro_args
+        @capture(macro_arg, irpass = val_) && (irpass = val; break)
+    end
+
+    state_symb = gensym()
+    state_type_symb = get_node_mem_struct_type(f)
+
+    map!(esc, args, args)
+    insert!(args, 1, true)
+    insert!(args, 1, state_symb)
+
+    ir_func_call = build_call(esc(f), args...)
+    code = quote
+        $(state_symb) = $(esc(state_type_symb))()
+        if $(esc(irpass))
+            @code_ir $(ir_func_call)
+        else
+            @code_ir $(esc(f))($(args...))
+        end
     end
     return code
 end

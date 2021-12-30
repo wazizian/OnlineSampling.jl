@@ -1,5 +1,15 @@
+"""
+    Debug pretty-printer (using MacroTools)
+"""
 function sh(body)
-    return println(prettify(body))
+    println(prettify(body))
+end
+
+"""
+    Debug pretty-printer (using MacroTools)
+"""
+function shh(body)
+    println(postwalk(rmlines, body))
 end
 
 function push_front(ex, body)
@@ -33,16 +43,33 @@ function unescape(transf, expr_args...)
     end
 end
 
-# Generate deterministic struct types
 # TODO (impr): mark as const (except during testing)
 global node_mem_struct = gensym()
+
+"""
+    Generate deterministic struct types
+"""
 function get_node_mem_struct_type(node_name::Symbol)
     global node_mem_struct
     return Symbol(node_mem_struct, node_name)
 end
 
+function get_node_mem_struct_type(ex::Expr)
+    # handle the case Module.f
+    if ex.head == :.
+        @assert length(ex.args) >= 2
+        return Expr(:., ex.args[1], get_node_mem_struct_type(ex.args[2]))
+    else
+        error("Invalid call: got $(ex)")
+    end
+end
+get_node_mem_struct_type(qn::QuoteNode) = QuoteNode(get_node_mem_struct_type(qn.value))
+
 # For testing purposes
 function _reset_node_mem_struct_types()
     global node_mem_struct
     node_mem_struct = gensym()
+    # redefine special nodes with new names
+    srcdir = dirname(@__FILE__)
+    include(joinpath(srcdir, "special_nodes.jl"))
 end
