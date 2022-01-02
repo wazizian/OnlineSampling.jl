@@ -21,4 +21,5 @@ SequentialMonteCarlo = "8c675823-c5d5-50f8-acb2-29aff48dfc1d"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+SequentialMonteCarlo = "0.6"
 julia = "1.6.4"
