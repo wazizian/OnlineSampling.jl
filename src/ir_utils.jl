@@ -21,13 +21,6 @@ function is_node(ir::IR)
 end
 
 """
-    Dummy function
-"""
-function dummy(args...)
-    return
-end
-
-"""
     Determines if the function f whose type is ftype has a method
     for arguments of types argtypes
     Inspired by the code of IRTools.meta
@@ -37,3 +30,22 @@ ftypehasmethod(ftype, argtypes...) =
     ftype <: Core.Builtin ||
     Base._methods_by_ftype(Tuple{ftype,argtypes...}, -1, IRTools.Inner.worldcounter()) |>
     isempty |> (!)
+
+"""
+    Apply the function mod.func to the arguments of ir
+"""
+function inline_map_args(ir::IR, func::Symbol; mod::Module = @__MODULE__)
+    args = arguments(ir)
+    argtypes = IRTools.argtypes(ir)
+    # following IRTools.varargs!
+    argtypes = Core.Compiler.widenconst.(argtypes)
+    argmap = Dict{Variable,Variable}()
+    for (t, arg) in zip(argtypes, args)
+        argmap[arg] = pushfirst!(ir, Statement(Expr(:block); type = t))
+    end
+    ir = varmap(var -> get(argmap, var, var), ir)
+    for arg in args
+        ir[argmap[arg]] = Statement(xcall(mod, func, arg))
+    end
+    return ir
+end

@@ -25,7 +25,7 @@ function internal_observe(
     y::TrackedObservation{T,F,S,D},
     obs::T,
 ) where {T,F,S,D<:Distribution{F,S}}
-    return logpdf(y.d, obs)
+    return loglikelihood(y.d, obs)
 end
 
 function internal_observe(val, obs)

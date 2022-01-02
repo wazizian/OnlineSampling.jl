@@ -2,7 +2,7 @@
     Build the expr for the fallback to the standard call
     Adapted from IRTools.fallthrough
 """
-function fallback(args...; pre_func = nothing, map_func = nothing, mod = @__MODULE__)
+function fallback(args...; map_func = nothing, mod = @__MODULE__)
     # Note that here args actually corresponds to [f, args...] in the prev function
     # this is because we have to adhere to the same calling convention as the generated
     # function built by @dynamo, namely
@@ -14,10 +14,6 @@ function fallback(args...; pre_func = nothing, map_func = nothing, mod = @__MODU
         call_args =
             pushfirst!([:($(mod).$(map_func)(args[$i])) for i = 2:length(args)], :(args[1]))
     end
-    if pre_func != nothing
-        pre_func::Symbol
-        pushfirst!(call_args, :($(mod).$(pre_func)))
-    end
     code = push_front(
         # advise the compiler to inline following the code
         # of IRTools.fallthrough
@@ -26,25 +22,6 @@ function fallback(args...; pre_func = nothing, map_func = nothing, mod = @__MODU
     )
     # return an Expr
     return code
-end
-
-"""
-    Apply the function mod.func to the arguments of ir
-"""
-function inline_map_args(ir::IR, func::Symbol; mod::Module = @__MODULE__)
-    args = arguments(ir)
-    argtypes = IRTools.argtypes(ir)
-    # following IRTools.varargs!
-    argtypes = Core.Compiler.widenconst.(argtypes)
-    argmap = Dict{Variable,Variable}()
-    new_args = map(zip(argtypes, args)) do (t, arg)
-        argmap[arg] = pushfirst!(ir, Statement(Expr(:block); type = t))
-    end
-    ir = varmap(var -> get(argmap, var, var), ir)
-    for arg in args
-        ir[argmap[arg]] = Statement(xcall(mod, func, arg))
-    end
-    return ir
 end
 
 """
