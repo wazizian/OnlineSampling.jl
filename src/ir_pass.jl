@@ -2,7 +2,7 @@
     Build the expr for the fallback to the standard call
     Adapted from IRTools.fallthrough
 """
-function fallback(args...; pre_func = nothing, map_func = nothing)
+function fallback(args...; pre_func = nothing, map_func = nothing, mod = @__MODULE__)
     # Note that here args actually corresponds to [f, args...] in the prev function
     # this is because we have to adhere to the same calling convention as the generated
     # function built by @dynamo, namely
@@ -11,14 +11,12 @@ function fallback(args...; pre_func = nothing, map_func = nothing)
         call_args = [:(args[$i]) for i = 1:length(args)]
     else
         map_func::Symbol
-        call_args = pushfirst!(
-            [:($(@__MODULE__).$(map_func)(args[$i])) for i = 2:length(args)],
-            :(args[1]),
-        )
+        call_args =
+            pushfirst!([:($(mod).$(map_func)(args[$i])) for i = 2:length(args)], :(args[1]))
     end
     if pre_func != nothing
         pre_func::Symbol
-        pushfirst!(call_args, :($(@__MODULE__).$(pre_func)))
+        pushfirst!(call_args, :($(mod).$(pre_func)))
     end
     code = push_front(
         # advise the compiler to inline following the code
@@ -31,16 +29,23 @@ function fallback(args...; pre_func = nothing, map_func = nothing)
 end
 
 """
-    Recursively apply ir_pass when it cannot be done in ir_pass
+    Apply the function mod.func to the arguments of ir
 """
-dynamo_recurse_ir_pass() = nothing
-@dynamo function recurse_ir_pass(ftype, argtypes...)
-    ir = IR(ftype, argtypes...)
-    ir == nothing && return fallback(ftype, argtypes...)
-    recurse!(ir, ir_pass)
+function inline_map_args(ir::IR, func::Symbol; mod::Module = @__MODULE__)
+    args = arguments(ir)
+    argtypes = IRTools.argtypes(ir)
+    # following IRTools.varargs!
+    argtypes = Core.Compiler.widenconst.(argtypes)
+    argmap = Dict{Variable,Variable}()
+    new_args = map(zip(argtypes, args)) do (t, arg)
+        argmap[arg] = pushfirst!(ir, Statement(Expr(:block); type = t))
+    end
+    ir = varmap(var -> get(argmap, var, var), ir)
+    for arg in args
+        ir[argmap[arg]] = Statement(xcall(mod, func, arg))
+    end
     return ir
 end
-
 
 """
     Perform a recursive pass on the IR
@@ -72,18 +77,15 @@ dynamo_ir_pass() = nothing
             return fallback(ftype, argtypes...; map_func = :unwrap_tracked_value)
         end
     else
-        ir = IR(ftype, new_argtypes...)
-        # need to both recurse (for notinits) and unwrap arguments
-        # TODO (impr): unwrap the arguments in the IR of f directly
         # TODO (impr): detect when we enter a no reset node so that we do not have
         # to recurse anymore
-        return fallback(
-            ftype,
-            argtypes...;
-            pre_func = :recurse_ir_pass,
-            map_func = :unwrap_tracked_value,
-        )
-
+        ir = IR(ftype, new_argtypes...)
+        ir == nothing &&
+            return fallback(ftype, argtypes...; map_func = :unwrap_tracked_value)
+        # need to both recurse (for notinits) and unwrap arguments
+        ir = inline_map_args(ir, :unwrap_tracked_value)
+        recurse!(ir)
+        return ir
         # if it is a node, we could warn and bypass:
         # using the trick from
         # https://github.com/FluxML/IRTools.jl/blob/948773227955e29a6caae44d109e8be56db6e605/examples/sneakyinvoke.jl
