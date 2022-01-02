@@ -73,3 +73,15 @@ function _reset_node_mem_struct_types()
     srcdir = dirname(@__FILE__)
     include(joinpath(srcdir, "special_nodes.jl"))
 end
+
+"""
+    Given a mutable struct, perform a deep-copy of all its fields
+"""
+@generated function deeptransfer!(target::S, origin::S) where {S}
+    ex = Expr(:block)
+    # compile-time loop, no run-time introspection
+    ex.args = [
+        :($(target).$(field) = deepcopy($(origin).$(field))) for field in fieldnames(target)
+    ]
+    return ex
+end

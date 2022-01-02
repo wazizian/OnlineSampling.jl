@@ -7,13 +7,14 @@ function node_run(macro_args...)
     call = macro_args[end]
     @capture(call, f_(args__)) || error("Improper usage of @node with $(call)")
 
-    # Determine if number of iterations is provided
-    n_iterations = nothing
+    # Determine if number of iterations is provided and if particles is provided
+    n_iterations_expr = nothing
     for macro_arg in macro_args
-        @capture(macro_arg, T = val_) && (n_iterations = eval(val); break)
+        @capture(macro_arg, T = val_) && (n_iterations_expr = val; break)
     end
+
     # Create main loop
-    if isnothing(n_iterations)
+    if isnothing(n_iterations_expr)
         loop_creator = body -> quote
             while true
                 $(body)
@@ -21,7 +22,7 @@ function node_run(macro_args...)
         end
     else
         loop_creator = body -> quote
-            for _ = 1:($(n_iterations)-1)
+            for _ = 1:($(esc(n_iterations_expr))-1)
                 $(body)
             end
         end
