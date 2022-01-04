@@ -1,6 +1,7 @@
 using Test
 using Distributions
 using HypothesisTests
+using Statistics
 using PDMats
 using LinearAlgebra
 using MacroTools
@@ -26,6 +27,9 @@ include("custom_testset.jl")
     end
     @testset "tree of gaussians" begin
         include(joinpath(testdir, "delayed_sampling/tree_gaussian.jl"))
+    end
+    @testset "online smc" begin
+        include(joinpath(testdir, "online_smc/simple_gaussian.jl"))
     end
     @testset "synchronous constructs" begin
         include(joinpath(testdir, "simple_synchronous.jl"))

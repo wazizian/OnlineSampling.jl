@@ -14,6 +14,10 @@ using Reexport
 include("delayed_sampling/DelayedSampling.jl")
 @reexport using ..DelayedSampling
 
+include("online_smc/OnlineSMC.jl")
+@reexport using ..OnlineSMC
+export OnlineSMC
+
 include("node_structs.jl")
 include("macro_utils.jl")
 include("ir_utils.jl")
