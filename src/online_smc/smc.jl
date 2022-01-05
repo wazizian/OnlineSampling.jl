@@ -11,6 +11,7 @@ function resample(
         chosen_particles = map(chosen_indices) do i
             # TODO (impr): to avoid the copies here, allow to run a node with a source and 
             # target state
+            # TODO (impr): do not copy the particles we have to keep anyway
             deepcopy(cloud.particles[i])
         end
         hat_weights = ones(length(cloud))
@@ -33,7 +34,7 @@ end
     Compute the next (normalized) weights
 """
 function next_weights(hat_weights::AbstractVector{Float64}, chosen_particles)
-    return normalize(hat_weights .* exp.(loglikelihood.(chosen_particles)), 1)
+    return @. hat_weights * exp(loglikelihood(chosen_particles))
 end
 
 function smc_step(
