@@ -31,6 +31,9 @@ include("custom_testset.jl")
     @testset "online smc" begin
         include(joinpath(testdir, "online_smc/simple_gaussian.jl"))
     end
+    @testset "notinit" begin
+        include(joinpath(testdir, "notinit.jl"))
+    end
     @testset "synchronous constructs" begin
         include(joinpath(testdir, "simple_synchronous.jl"))
     end

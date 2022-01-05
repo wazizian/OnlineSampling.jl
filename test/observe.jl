@@ -9,6 +9,7 @@
 
     ir = OnlineSampling.@node_ir irpass = false f(obs)
     @test OnlineSampling.is_node(ir)
+    @test !OnlineSampling.is_reset_node(ir)
 
     ir = OnlineSampling.@node_ir irpass = true f(obs)
     @test_broken OnlineSampling.is_node(ir)

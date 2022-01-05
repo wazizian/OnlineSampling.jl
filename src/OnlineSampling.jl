@@ -4,10 +4,12 @@ using Chain
 using MacroTools
 using MacroTools: prewalk, postwalk
 using IRTools
-using IRTools: @dynamo, IR, recurse!, Meta, arguments, xcall, Statement
+using IRTools: @dynamo, IR, recurse!, Meta, arguments, xcall, Statement, self
 using IRTools.Inner: varmap, Variable
 using Accessors
 using Distributions
+# For llvm code debugging
+using InteractiveUtils
 
 using Reexport
 

@@ -225,11 +225,12 @@ function create_structs(
     return mem_struct_symb, struct_defs, copy_code, reset_code
 end
 
-# This call dos not do anything but is used to mark
-# a body as a node body, useful for later passes
-function node_marker()
-    return
-end
+"""
+    Dummy calls, to mark nodes for the later IR pass
+"""
+node_marker() = nothing
+node_no_reset_marker() = nothing
+node_reset_marker() = nothing
 
 function node_build(splitted)
     node_name = splitted[:name]
@@ -260,7 +261,7 @@ function node_build(splitted)
         treat_initialized_vars(false, _)
         store_stored_variables(state_symb, store_symb, stored_vars, _)
         push_front(:($(inner_reset_symb) = false), _)
-        push_front(:($(@__MODULE__).node_marker()), _)
+        push_front(:($(@__MODULE__).node_no_reset_marker()), _)
     end
 
     # reset pass
@@ -269,7 +270,7 @@ function node_build(splitted)
         push_front(reset_code, _)
         store_stored_variables(state_symb, store_symb, stored_vars, _)
         push_front(:($(inner_reset_symb) = true), _)
-        push_front(:($(@__MODULE__).node_marker()), _)
+        push_front(:($(@__MODULE__).node_reset_marker()), _)
     end
 
     # Create inner functions

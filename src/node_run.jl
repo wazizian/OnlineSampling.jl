@@ -62,6 +62,11 @@ function node_run_ir(macro_args...)
         @capture(macro_arg, irpass = val_) && (irpass = val; break)
     end
 
+    full = :(false)
+    for macro_arg in macro_args
+        @capture(macro_arg, full = val_) && (full = val; break)
+    end
+
     state_symb = gensym()
     state_type_symb = get_node_mem_struct_type(f)
 
@@ -73,7 +78,14 @@ function node_run_ir(macro_args...)
     code = quote
         $(state_symb) = $(esc(state_type_symb))()
         if $(esc(irpass))
-            @code_ir $(ir_func_call)
+            if $(esc(full))
+                println(@macroexpand $(ir_func_call))
+                println(@code_ir $(ir_func_call))
+                @code_llvm optimize=false raw=true $(ir_func_call)
+                @code_native $(ir_func_call)
+            else
+                @code_ir $(ir_func_call)
+            end
         else
             @code_ir $(esc(f))($(args...))
         end

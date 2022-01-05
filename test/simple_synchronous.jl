@@ -35,11 +35,12 @@ end
     @test @isdefined pure_counter
     @test @isdefined counter
 
-    arr = Vector{Int}()
+    # smoke test
+    @node T=10 pure_counter()
 
+    arr = Vector{Int}()
     # call node for 10 iterations
     @node T = 10 counter(arr)
-
     @test arr == cat(collect(1:5), collect(1:5), dims = 1)
 end
 
@@ -81,18 +82,6 @@ end
     @test arr == vcat([0], collect(0:3))
 end
 
-@testset "nothing edge cases" begin
-    _reset_node_mem_struct_types()
-    OnlineSampling.ir_pass(println, OnlineSampling.notinit)
-    @test OnlineSampling.ir_pass(Base.iterate, [1.0], OnlineSampling.notinit) ==
-          OnlineSampling.notinit
-    function f(x)
-        y, z = x
-        return z
-    end
-    @test OnlineSampling.ir_pass(f, OnlineSampling.notinit) == OnlineSampling.notinit
-end
-
 @testset "reversed def & prev" begin
     _reset_node_mem_struct_types()
     @node function f(arr)
@@ -112,11 +101,25 @@ end
         @init y = 0
         y = @prev x
         x = ((a, b) -> (push!(arr, a); b))(y, (@prev y) + 1)
-        @test !isnothing(x)
+        @test x isa Real
     end
     arr = []
     @node T = 5 f(arr)
     @test arr == [0, 0, 1, 1, 2]
+end
+
+@testset "ill-formed prev" begin
+    _reset_node_mem_struct_types()
+    @node function f()
+        y = @prev(y) + 1
+    end
+    @test_throws MethodError (@node T = 2 f())
+end
+
+@testset "invalid argument" begin
+    _reset_node_mem_struct_types()
+    @node myparticularfunction(x::Bool) = x
+    @test_throws MethodError (@node T = 1 myparticularfunction(0))
 end
 
 @testset "one line counter" begin
