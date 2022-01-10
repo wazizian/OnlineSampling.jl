@@ -8,7 +8,7 @@ OnlineSMC.loglikelihood(p::MvParticle) = p.loglikelihood
 
 const N = 10000
 const Nsamples = 1000
-const atol = 2 / sqrt(min(N, Nsamples))
+const atol = 3 / sqrt(min(N, Nsamples))
 const rtol = 0.05
 
 rankone(x::AbstractVector) = x * x'
