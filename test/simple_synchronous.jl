@@ -36,7 +36,7 @@ end
     @test @isdefined counter
 
     # smoke test
-    @node T=10 pure_counter()
+    @node T = 10 pure_counter()
 
     arr = Vector{Int}()
     # call node for 10 iterations

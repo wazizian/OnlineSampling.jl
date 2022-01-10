@@ -52,5 +52,5 @@ end
 
     @test OnlineSampling.is_node(ir)
     @test OnlineSampling.is_reset_node(ir)
-    @test !OnlineSampling.is_node(ir; markers=(:node_no_reset_marker,))
+    @test !OnlineSampling.is_node(ir; markers = (:node_no_reset_marker,))
 end
