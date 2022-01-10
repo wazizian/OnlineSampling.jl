@@ -35,7 +35,7 @@ function fallback(args...; map_func = nothing, mode = @__MODULE__)
     end
     return code
 end
-    
+
 """
     Build the expr for the fallback to the standard call
     Adapted from IRTools.fallthrough
@@ -73,7 +73,8 @@ function adaptative_recurse!(ir::IR)
     if is_reset_node(ir)
         new_self = pushfirst!(ir, Statement(Expr(:block)))
         recurse!(ir, new_self)
-        ir[new_self] = Statement(xcall(@__MODULE__, :IRPass, :(true)); type=(@__MODULE__).IRPass)
+        ir[new_self] =
+            Statement(xcall(@__MODULE__, :IRPass, :(true)); type = (@__MODULE__).IRPass)
     else
         recurse!(ir)
     end
