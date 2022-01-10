@@ -6,6 +6,7 @@ using PDMats
 using LinearAlgebra
 using MacroTools
 using MacroTools: postwalk
+using IRTools
 using OnlineSampling
 import OnlineSampling._reset_node_mem_struct_types
 using .DelayedSampling: is_inv_sat, Marginalized, Initialized, Realized
