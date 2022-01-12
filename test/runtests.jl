@@ -41,4 +41,7 @@ include("custom_testset.jl")
     @testset "observe" begin
         include(joinpath(testdir, "observe.jl"))
     end
+    @testset "node smc" begin
+        include(joinpath(testdir, "smc.jl"))
+    end
 end

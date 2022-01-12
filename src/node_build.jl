@@ -6,7 +6,7 @@ function treat_observe_calls(state_symb::Symbol, body::Expr)
     return postwalk(body) do ex
         @capture(ex, (@observe var_ val_) | (@observe(var_, val_))) || return ex
         return quote
-            $(state_symb).logscore += @node $(@__MODULE__).observe($(var), $(val))
+            $(state_symb).loglikelihood += @node $(@__MODULE__).observe($(var), $(val))
         end
     end
 end
@@ -76,23 +76,61 @@ end
 function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
     # the dict below maps unique call symbols to struct types
     node_calls = Dict{Symbol,Union{Expr,Symbol}}()
-    new_body = postwalk(body) do ex
-        @capture(ex, (@node cond_ f_(args__)) | (@node f_(args__))) || return ex
+    new_body = prewalk(body) do ex
+        @capture(
+            ex,
+            (@node cond_ particles = val_ f_(args__)) |
+            (@node particles = val_ f_(args__)) |
+            (@node cond_ f_(args__)) |
+            (@node f_(args__))
+        ) || return ex
 
+        cond = isnothing(cond) ? :(false) : cond
+
+        # detect smc and compute particles
+        node_particles = 0
+        if !isnothing(val)
+            try
+                node_particles = eval(val)::Integer
+            catch
+                error("Particle number $(val) should be an integer constant")
+            end
+        end
+
+        mem_struct_type = get_node_mem_struct_type(f)
+
+        if node_particles > 0
+            return quote
+                # TODO (feat): use expectation over cloud as likelihood
+                # For this, add a method to OnlineSMC.likelihood for the store of smc (whose type is det)
+                begin
+                    # The fact that we used prewalk and inserted a begin...end block here
+                    # guarantees that this node_call will be treated at the next iteration
+                    @node $(cond) $(@__MODULE__).smc(
+                        $(node_particles),
+                        $(mem_struct_type),
+                        $(f),
+                        $(args...),
+                    )
+                end
+            end
+        end
         # get new id
         call_id = gensym()
-        node_calls[call_id] = get_node_mem_struct_type(f)
+        node_calls[call_id] = mem_struct_type
 
         # integrate reset condition
-        reset_cond = isnothing(cond) ? :($(reset_symb)) : :($(reset_symb) || $(cond))
+        reset_cond = :($(reset_symb) || $(cond))
         for arg in [reset_cond, :($(state_symb).$(call_id))]
             insert!(args, 1, arg)
         end
 
         # update the score of the current node
         update_score = quote
-            $(state_symb).logscore += $(state_symb).$(call_id).logscore
+            $(state_symb).loglikelihood +=
+                $(@__MODULE__).OnlineSMC.loglikelihood($(state_symb).$(call_id))
         end
+
         tmp = gensym()
         return quote
             $(tmp) = $(f)($(args...))
@@ -188,7 +226,7 @@ function create_structs(
     node_call_inits = [:($(type)()) for type in values(node_calls)]
     mem_struct_def = quote
         mutable struct $(mem_struct_symb)
-            logscore::Float64
+            loglikelihood::Float64
             store::$(store_struct_symb)
             $(node_call_fields...)
         end
@@ -306,7 +344,7 @@ function node_build(splitted)
 
     # Reset score
     reinit_score = quote
-        $(state_symb).logscore = 0.0
+        $(state_symb).loglikelihood = 0.0
     end
 
     # Create wrapper func

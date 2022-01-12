@@ -8,5 +8,5 @@ using Chain
 include("cloud.jl")
 include("smc.jl")
 
-export Cloud, expectation, smc_step
+export Cloud, expectation
 end

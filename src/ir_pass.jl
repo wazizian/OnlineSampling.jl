@@ -88,6 +88,7 @@ end
 ir_pass(f, args...) = IRPass()(f, args...)
 
 @dynamo function (irpass::IRPass)(ftype, argtypes...)
+    # @show (ftype, argtypes...)
     isapplicable = ftypehasmethod(ftype, argtypes...)
     if isapplicable
         # best case, continue
@@ -122,3 +123,17 @@ ir_pass(f, args...) = IRPass()(f, args...)
         # to remove the type annotations
     end
 end
+
+"""
+    Manual workarounds for `Core._apply` and `Core._apply_iterate`.
+"""
+# Related Issues
+# https://github.com/FluxML/IRTools.jl/issues/74
+# https://github.com/JuliaLabs/Cassette.jl/issues/146
+# https://github.com/JuliaLabs/Cassette.jl/issues/162
+# The current workaround is inspired by Zygote
+# https://github.com/FluxML/Zygote.jl/blob/3a63df8edb3b613107761ff829ca61ed393ce2dd/src/lib/lib.jl#L188
+(irpass::IRPass)(::typeof(Core._apply_iterate), ::typeof(Base.iterate), f, args...) =
+    Core._apply(irpass, (f,), args...)
+
+(irpass::IRPass)(::typeof(Core._apply), f, args...) = Core._apply(irpass, (f,), args...)

@@ -18,3 +18,21 @@ end
     current_obs = @node iterate(obs)
     return internal_observe(var, current_obs)
 end
+
+"""
+    Pre-defined node which executes a SMC
+"""
+@node function smc(
+    nparticles::Int64,
+    storetype::T,
+    step!::F,
+    args...,
+) where {T<:DataType,F<:Function}
+    # TODO (IMPR): do not execute init statements
+    # TODO (impr): get the return type if avaiblable ?
+    #@init#
+    void_cloud = Cloud{Particle{storetype}}(nparticles)
+    @init cloud = smc_node_step(step!, void_cloud, true, args...)
+    cloud = smc_node_step(step!, (@prev cloud), false, args...)
+    return cloud
+end
