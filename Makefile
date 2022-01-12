@@ -32,4 +32,4 @@ format:
 	julia --project -e "using JuliaFormatter; format(\".\"; verbose=true)"
 
 interactive:
-	julia --project -e "using Revise, OnlineSampling, IRTools" -i
+	julia --project -e "using Revise, OnlineSampling, MacroTools, IRTools" -i

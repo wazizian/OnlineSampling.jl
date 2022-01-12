@@ -122,3 +122,16 @@ ir_pass(f, args...) = IRPass()(f, args...)
         # to remove the type annotations
     end
 end
+
+# Workarounds, see
+# https://github.com/FluxML/IRTools.jl/issues/74
+# https://github.com/JuliaLabs/Cassette.jl/issues/146
+# https://github.com/JuliaLabs/Cassette.jl/issues/162
+# How it is handled in Zygote
+# https://cs.github.com/FluxML/Zygote.jl?q=apply_iterate
+(irpass::IRPass)(::typeof(Core._apply_iterate), ::typeof(Base.iterate), ftype, argtypes...) =
+    irpass(ftype, argtypes...)
+
+(irpass::IRPass)(::typeof(Core._apply_iterate), ftype, argtypes...) =
+    irpass(ftype, argtypes...)
+

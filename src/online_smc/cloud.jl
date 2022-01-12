@@ -9,11 +9,19 @@ struct Cloud{T,W<:AbstractVector{Float64},P<:AbstractVector{T}}
     weights::W # not normalized
     particles::P
 end
+
+function value(_) end
+
+"""
+    Default convenience loglikelihood implementation
+"""
+loglikelihood(p) = p.loglikelihood
+
 Base.length(cloud::Cloud) = length(cloud.particles)
 normalized_weights(cloud::Cloud) = normalize(cloud.weights, 1)
 
-function value(_) end
-function loglikelihood(_) end
+
+
 
 Cloud(particles::P) where {T,P<:AbstractVector{T}} =
     Cloud{T,Vector{Float64},P}(fill(1.0 / length(particles), length(particles)), particles)
@@ -22,15 +30,12 @@ Cloud(particles::P) where {T,P<:AbstractVector{T}} =
     Convenience constructor for Cloud
 """
 # TODO (impr): use static arrays for speed
-@generated function Cloud(nparticles::Int, ::Type{T}) where {T}
-    particles_array = quote
-        particles = Vector{$(T)}(undef, nparticles)
-        for i = 1:nparticles
-            particles[i] = $(T)()
-        end
-        particles
+function Cloud{T}(nparticles::Int) where {T}
+    particles = Vector{T}(undef, nparticles)
+    for i = 1:nparticles
+        particles[i] = T()
     end
-    return :(Cloud($(particles_array)))
+    return Cloud(particles)
 end
 
 """
@@ -45,19 +50,35 @@ function Base.rand(cloud::Cloud{T,W,P}, n::Integer) where {T,W,P}
 end
 
 """
-    Assuming that the particles have a field value, compute the expectation of f applied
+    Assuming that the particles have a method `value`, compute the expectation of `f` applied
     to this value
 """
-function expectation(f::Function, cloud::Cloud{T}) where {T}
+@inline expectation(f::Function, cloud::Cloud) = _expectation(f ∘ value, cloud)
+
+"""
+    Compute an expectation over the cloud of particles, where `f` takes
+    a particle as input (and not only its return value)
+"""
+function _expectation(f::Function, cloud::Cloud{T}) where {T}
     # TODO (question): is the version below faster ?
-    # return sum(normalized_weights(cloud) .* (f ∘ value).(cloud.particles))
+    # return sum(normalized_weights(cloud) .* f.(cloud.particles))
     return mapreduce(
-        (p, w) -> w * f(value(p)),
+        (p, w) -> w * f(p),
         +,
         cloud.particles,
         normalized_weights(cloud),
     )
 end
+
+"""
+    Loglikelihood of a cloud
+"""
+loglikelihood(cloud::Cloud) = _expectation(loglikelihood, cloud)
+
+"""
+    Iterate over the values in a cloud (for testing)
+"""
+Base.iterate(cloud::Cloud) = Iterators.map(value, cloud.particles)
 
 """
     Essential Sample Size for adaptative resampling

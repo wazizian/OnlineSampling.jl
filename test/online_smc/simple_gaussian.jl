@@ -42,7 +42,7 @@ end
         p.loglikelihood = -0.25 * (3 * only(p.val) + 1 - only(obs_y))^2
     end
 
-    cloud = Cloud(N, MvParticle)
+    cloud = Cloud{MvParticle}(N)
     new_cloud = smc_step(proposal!, cloud)
 
     target = MvNormal([3 / 11], ScalMat(1, 2 / 11))
@@ -69,7 +69,7 @@ end
     end
 
     T = 10
-    cloud = Cloud(N, MvParticle)
+    cloud = Cloud{MvParticle}(N)
     for _ = 1:(T-1)
         cloud = smc_step(proposal!, cloud)
     end
