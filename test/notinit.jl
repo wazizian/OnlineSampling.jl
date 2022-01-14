@@ -11,17 +11,26 @@
 end
 
 @testset "hasnotinit" begin
-    @test OnlineSampling.typeallowsnotinit(Union{OnlineSampling.NotInit,Int})
-    @test OnlineSampling.typeallowsnotinit(Any)
-    @test !OnlineSampling.typeallowsnotinit(Int)
-    @test OnlineSampling.typeallowsnotinit(Vector{Any})
-    @test !OnlineSampling.typeallowsnotinit(Vector{Int})
-    @test OnlineSampling.typeallowsnotinit(Tuple{OnlineSampling.NotInit,Int})
+    @test OnlineSampling.typeallows(
+        OnlineSampling.NotInit,
+        Union{OnlineSampling.NotInit,Int},
+    )
+    @test OnlineSampling.typeallows(OnlineSampling.NotInit, Any)
+    @test !OnlineSampling.typeallows(OnlineSampling.NotInit, Int)
+    @test OnlineSampling.typeallows(OnlineSampling.NotInit, Vector{Any})
+    @test !OnlineSampling.typeallows(OnlineSampling.NotInit, Vector{Int})
+    @test OnlineSampling.typeallows(
+        OnlineSampling.NotInit,
+        Tuple{OnlineSampling.NotInit,Int},
+    )
 
-    @test !OnlineSampling.typeforcesnotinit(Union{OnlineSampling.NotInit,Int})
-    @test OnlineSampling.typeforcesnotinit(OnlineSampling.NotInit)
-    @test !OnlineSampling.typeforcesnotinit(Vector{Any})
-    @test OnlineSampling.typeforcesnotinit(Vector{OnlineSampling.NotInit})
+    @test !OnlineSampling.typeforces(
+        OnlineSampling.NotInit,
+        Union{OnlineSampling.NotInit,Int},
+    )
+    @test OnlineSampling.typeforces(OnlineSampling.NotInit, OnlineSampling.NotInit)
+    @test !OnlineSampling.typeforces(OnlineSampling.NotInit, Vector{Any})
+    @test OnlineSampling.typeforces(OnlineSampling.NotInit, Vector{OnlineSampling.NotInit})
 
     struct A
         x::Int
@@ -32,10 +41,10 @@ end
     struct C
         x::OnlineSampling.NotInit
     end
-    @test !OnlineSampling.typeallowsnotinit(A)
-    @test OnlineSampling.typeallowsnotinit(B)
-    @test !OnlineSampling.typeforcesnotinit(B)
-    @test OnlineSampling.typeforcesnotinit(C)
+    @test !OnlineSampling.typeallows(OnlineSampling.NotInit, A)
+    @test OnlineSampling.typeallows(OnlineSampling.NotInit, B)
+    @test !OnlineSampling.typeforces(OnlineSampling.NotInit, B)
+    @test OnlineSampling.typeforces(OnlineSampling.NotInit, C)
 
     @test OnlineSampling.hasnotinit((OnlineSampling.notinit, 1))
     @test !OnlineSampling.hasnotinit([1])

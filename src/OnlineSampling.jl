@@ -23,6 +23,7 @@ export OnlineSMC
 include("node_structs.jl")
 include("macro_utils.jl")
 include("ir_utils.jl")
+include("wrapper_utils.jl")
 include("notinit_removal.jl")
 include("smc_utils.jl")
 include("observe.jl")
