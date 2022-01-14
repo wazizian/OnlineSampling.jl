@@ -129,8 +129,11 @@ end
         push!(arr, x)
     end
     arr = []
-    @node T = 5 f(arr)
-    @test arr == collect(1:5)
+    # Due to design change, @init statements
+    # are not excuted anymore on 
+    # non-reset iterations
+    @test_broken (@node T = 5 f(arr))
+    @test_broken arr == collect(1:5)
 end
 
 @testset "side-effect init" begin
@@ -140,6 +143,8 @@ end
     end
     arr = []
     @node T = 5 f(arr)
-    # not sure this is the right design decision
-    @test arr == fill(0, 5)
+    # Due to design change, @init statements
+    # are not excuted anymore on 
+    # non-reset iterations
+    @test arr == [0]
 end

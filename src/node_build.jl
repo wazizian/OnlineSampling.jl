@@ -61,7 +61,8 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
             @capture(ex, @init var_ = val_) || return ex
             return (reset ? quote
                 $(var) = $(val)
-            end : val)
+                # init statements are not executed anymore outside resets
+            end : :(nothing))
         end
     end
 
