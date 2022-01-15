@@ -14,11 +14,11 @@ end
 """
     Replace calls to rand with [internal_rand](@ref)
 """
-function treat_rand_calls(body::Expr)
+function treat_rand_calls(ctx_symb::Symbol, body::Expr)
     return postwalk(body) do ex
         @capture(ex, rand(d_)) || return ex
         return quote
-            $(@__MODULE__).internal_rand($(d))
+            $(@__MODULE__).internal_rand($(ctx_symb), $(d))
         end
     end
 end
@@ -74,12 +74,20 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     return new_body
 end
 
-function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
+function treat_node_calls(
+    state_symb::Symbol,
+    reset_symb::Symbol,
+    ctx_symb::Symbol,
+    body::Expr,
+)
     # the dict below maps unique call symbols to struct types
     node_calls = Dict{Symbol,Union{Expr,Symbol}}()
     new_body = prewalk(body) do ex
         @capture(
             ex,
+            # TODO (impr): improve below
+            (@node cond_ particles = val_ DS = dsval_ f_(args__)) |
+            (@node particles = val_ DS = dsval_ f_(args__)) |
             (@node cond_ particles = val_ f_(args__)) |
             (@node particles = val_ f_(args__)) |
             (@node cond_ f_(args__)) |
@@ -87,6 +95,7 @@ function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
         ) || return ex
 
         cond = isnothing(cond) ? :(false) : cond
+        dsval = isnothing(dsval) ? :(false) : dsval
 
         # detect smc and compute particles
         node_particles = 0
@@ -104,12 +113,15 @@ function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
             return quote
                 # TODO (feat): use expectation over cloud as likelihood
                 # For this, add a method to OnlineSMC.likelihood for the store of smc (whose type is det)
+                # TODO (impr): the context used at toplevel and inside SMCs are disjoint
+                # how can we remedy this ?
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here
                     # guarantees that this node_call will be treated at the next iteration
                     @node $(cond) $(@__MODULE__).smc(
                         $(node_particles),
                         $(mem_struct_type),
+                        $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).DSOffCtx,
                         $(f),
                         $(args...),
                     )
@@ -122,7 +134,7 @@ function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, body::Expr)
 
         # integrate reset condition
         reset_cond = :($(reset_symb) || $(cond))
-        for arg in [reset_cond, :($(state_symb).$(call_id))]
+        for arg in [ctx_symb, reset_cond, :($(state_symb).$(call_id))]
             insert!(args, 1, arg)
         end
 
@@ -203,9 +215,10 @@ function create_structs(
     # and given by get_node_mem_struct_type(node_name), and which contains,
     # 1. An immutable struct which stores the variables which appear in prev
     # 2. The mutable structs of the nodes called inside
+    # 3. The loglikelihood
 
     # First, we build the structure for the stored variables
-    store_struct_symb = gensym()
+    @gensym store_struct_symb
     init_stored_vars = map(_ -> notinit, 1:length(stored_vars))
     store_struct_def = quote
         struct $(store_struct_symb)
@@ -281,14 +294,17 @@ function node_build(splitted)
         $(store_symb) = $(state_symb).store
     end
 
+    # sampling context, as defined in tracked_rv.jl
+    ctx_symb = gensym()
+
     # common pass
     inner_reset_symb = gensym()
     stored_vars, (node_calls, new_body) = @chain body begin
         push_front(assign_store, _)
         treat_observe_calls(state_symb, _)
-        treat_rand_calls
+        treat_rand_calls(ctx_symb, _)
         collect_stored_variables(store_symb, _)
-        _[1], treat_node_calls(state_symb, inner_reset_symb, _[2])
+        _[1], treat_node_calls(state_symb, inner_reset_symb, ctx_symb, _[2])
     end
 
     # create structs
@@ -315,6 +331,7 @@ function node_build(splitted)
     # Create inner functions
     name = splitted[:name]
     insert!(splitted[:args], 1, :($(state_symb)::$(struct_symb)))
+    insert!(splitted[:args], 2, :($(ctx_symb)::$(@__MODULE__).SamplingCtx))
 
     no_reset_inner_name = gensym()
     reset_inner_name = gensym()
@@ -332,6 +349,7 @@ function node_build(splitted)
     # Create inner function calls
     # Remove type annotation in arg
     splitted[:args][1] = :($(state_symb))
+    splitted[:args][2] = ctx_symb
 
     tmp = gensym()
     outer_reset_symb = gensym()
@@ -360,6 +378,7 @@ function node_build(splitted)
     splitted[:body] = outer_body
     splitted[:name] = name
     splitted[:args][1] = :($(state_symb)::$(struct_symb))
+    splitted[:args][2] = :($(ctx_symb)::$(@__MODULE__).SamplingCtx)
     insert!(splitted[:args], 2, :($(outer_reset_symb)::Bool))
     outer_func = combinedef(splitted)
 

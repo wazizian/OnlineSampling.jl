@@ -70,7 +70,9 @@ loglikelihood(cloud::Cloud) = _expectation(loglikelihood, cloud)
 """
     Iterate over the values in a cloud (for testing)
 """
-Base.iterate(cloud::Cloud) = Iterators.map(value, cloud.particles)
+Base.iterate(cloud::Cloud) = Base.iterate(Iterators.map(value, cloud.particles))
+Base.iterate(cloud::Cloud, state) =
+    Base.iterate(Iterators.map(value, cloud.particles), state)
 
 """
     Essential Sample Size for adaptative resampling

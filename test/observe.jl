@@ -1,5 +1,5 @@
 @testset "unwrap" begin
-    y = OnlineSampling.internal_rand(Normal())
+    y = OnlineSampling.internal_rand(OnlineSampling.SamplingCtx(), Normal())
     val = OnlineSampling.value(y)
 
     @test y isa OnlineSampling.TrackedObservation

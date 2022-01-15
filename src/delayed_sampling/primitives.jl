@@ -45,8 +45,8 @@ end
 function new_id(gm)
     # TODO: this logic will be improved
     @assert length(gm.nodes) == gm.last_id
-    id = gm.last_id + 1
-    return (@set gm.last_id = id), id
+    id = (gm.last_id += 1)
+    return id
 end
 
 function set!(gm::GraphicalModel, node::AbstractNode)
@@ -86,8 +86,4 @@ function rm_marginalized_child!(gm::GraphicalModel, child::Marginalized)
         @set _.marginalized_child = nothing
         update!(gm, _)
     end
-end
-
-function update_loglikelihood!(gm::GraphicalModel, ll::AbstractFloat)
-    gm.loglikelihood[] += ll
 end

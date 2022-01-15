@@ -44,7 +44,7 @@ function unescape(transf, expr_args...)
 end
 
 # TODO (impr): mark as const (except during testing)
-global node_mem_struct = gensym()
+@gensym node_mem_struct
 
 """
     Generate deterministic struct types

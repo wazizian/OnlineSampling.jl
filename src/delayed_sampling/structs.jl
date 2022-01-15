@@ -32,14 +32,13 @@ end
 
 const UnionNode = Union{Initialized,Marginalized,Realized}
 
-struct GraphicalModel{I<:Integer,F<:AbstractFloat}
+mutable struct GraphicalModel{I<:Integer}
     nodes::Vector{UnionNode}
     last_id::I
-    loglikelihood::F
 end
 
 function GraphicalModel(::Type{I}) where {I<:Integer}
-    GraphicalModel{I,Float64}(Vector{UnionNode}(), convert(I, 0), 0.0)
+    GraphicalModel{I}(Vector{UnionNode}(), convert(I, 0))
 end
 
 # Initial constructors

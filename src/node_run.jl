@@ -7,7 +7,7 @@ function node_run(macro_args...)
     call = macro_args[end]
     @capture(call, f_(args__)) || error("Improper usage of @node with $(call)")
 
-    # Determine if number of iterations is provided and if particles is provided
+    # Determine if number of iterations is provide
     n_iterations_expr = nothing
     for macro_arg in macro_args
         @capture(macro_arg, T = val_) && (n_iterations_expr = val; break)
@@ -31,9 +31,10 @@ function node_run(macro_args...)
     state_symb = gensym()
     state_type_symb = get_node_mem_struct_type(f)
     reset_symb = gensym()
+    ctx_symb = gensym()
 
     map!(esc, args, args)
-    for arg in [reset_symb, state_symb]
+    for arg in [ctx_symb, reset_symb, state_symb]
         insert!(args, 1, arg)
     end
 
@@ -43,6 +44,7 @@ function node_run(macro_args...)
     code = quote
         $(state_symb) = $(esc(state_type_symb))()
         $(reset_symb) = true
+        $(ctx_symb) = $(@__MODULE__).SamplingCtx()
         $(func_call)
         $(reset_symb) = false
         $(loop_code)
@@ -71,6 +73,7 @@ function node_run_ir(macro_args...)
     state_type_symb = get_node_mem_struct_type(f)
 
     map!(esc, args, args)
+    insert!(args, 1, :($(@__MODULE__).SamplingCtx()))
     insert!(args, 1, true)
     insert!(args, 1, state_symb)
 
