@@ -124,13 +124,10 @@ function retract!(gm::GraphicalModel, node::Marginalized)
 end
 
 function observe!(gm::GraphicalModel, node::AbstractNode, value::AbstractArray)
-    # Unused for now
-    # ll = logpdf(node.d, value)
-    # update_loglikelihood!(gm, ll)
-    @chain node begin
-        dist!(gm, _)
-        realize!(gm, _, value)
-    end
+    marginalized_node = dist!(gm, node)
+    ll = logpdf(marginalized_node.d, value)
+    new_node = realize!(gm, marginalized_node, value)
+    return new_node, ll
 end
 
 function jointdist!(gm::GraphicalModel, child::Initialized, parent::Marginalized)
@@ -170,7 +167,8 @@ function value!(gm::GraphicalModel{I}, id::I) where {I}
 end
 
 function observe!(gm::GraphicalModel{I}, id::I, value::AbstractArray) where {I}
-    _ = observe!(gm, gm.nodes[id], value)
+    _, ll = observe!(gm, gm.nodes[id], value)
+    return ll
 end
 
 function dist!(gm::GraphicalModel{I}, id::I) where {I}
