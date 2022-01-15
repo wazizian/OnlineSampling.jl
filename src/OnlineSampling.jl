@@ -9,6 +9,7 @@ using IRTools.Inner: varmap, Variable
 using Accessors
 import Distributions
 using Distributions: Distribution, Normal, MvNormal
+using LinearAlgebra
 # For llvm code debugging
 using InteractiveUtils
 

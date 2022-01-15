@@ -2,10 +2,10 @@
     gm = GraphicalModel(Int)
     @test is_inv_sat(gm)
 
-    gm, x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
+    x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
     @test is_inv_sat(gm)
 
-    gm, y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
+    y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
     @test is_inv_sat(gm)
 
     observe!(gm, x, [1.0])
@@ -24,10 +24,10 @@ end
     gm = GraphicalModel(Int)
     @test is_inv_sat(gm)
 
-    gm, x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
+    x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
     @test is_inv_sat(gm)
 
-    gm, y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
+    y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
     @test is_inv_sat(gm)
 
     observe!(gm, y, [2.0])
@@ -46,10 +46,10 @@ end
     gm = GraphicalModel(Int)
     @test is_inv_sat(gm)
 
-    gm, x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
+    x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
     @test is_inv_sat(gm)
 
-    gm, y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
+    y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
     @test is_inv_sat(gm)
 
     d = dist!(gm, y)
@@ -61,10 +61,10 @@ end
     gm = GraphicalModel(Int)
     @test is_inv_sat(gm)
 
-    gm, x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
+    x = initialize!(gm, MvNormal([0.0], ScalMat(1, 1.0)))
     @test is_inv_sat(gm)
 
-    gm, y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
+    y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
     @test is_inv_sat(gm)
 
     samples = [value!(gm, y)[1] for _ = 1:100]
@@ -83,13 +83,13 @@ end
     Σ = ScalMat(1, 1.0)
     id = 1.0 * I(1)
 
-    gm, x = initialize!(gm, MvNormal(μ, Σ))
+    x = initialize!(gm, MvNormal(μ, Σ))
     @test is_inv_sat(gm)
 
-    gm, y = initialize!(gm, CdMvNormal(id, μ, Σ), x)
+    y = initialize!(gm, CdMvNormal(id, μ, Σ), x)
     @test is_inv_sat(gm)
 
-    gm, z = initialize!(gm, CdMvNormal(id, μ, Σ), y)
+    z = initialize!(gm, CdMvNormal(id, μ, Σ), y)
     @test is_inv_sat(gm)
 
     observe!(gm, z, [1.0])

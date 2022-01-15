@@ -145,10 +145,10 @@ end
 
 # Exposed interface
 function initialize!(gm::GraphicalModel{I}, d::Distribution) where {I}
-    new_gm, id = new_id(gm)
+    id = new_id(gm)
     node = Marginalized(id, d)
-    set!(new_gm, node)
-    return new_gm, id
+    set!(gm, node)
+    return id
 end
 
 function initialize!(
@@ -156,12 +156,12 @@ function initialize!(
     cd::ConditionalDistribution,
     parent_id::I,
 ) where {I}
-    new_gm, id = new_id(gm)
-    parent = new_gm.nodes[parent_id]
+    id = new_id(gm)
+    parent = gm.nodes[parent_id]
     parent_child_ref = push!(parent.children, id)
     node = Initialized(id, parent_id, parent_child_ref, cd)
-    set!(new_gm, node)
-    return new_gm, id
+    set!(gm, node)
+    return id
 end
 
 function value!(gm::GraphicalModel{I}, id::I) where {I}

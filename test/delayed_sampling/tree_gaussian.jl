@@ -6,16 +6,16 @@
     Σ = ScalMat(1, 1.0)
     id = 1.0 * I(1)
 
-    gm, x1 = initialize!(gm, MvNormal(μ, Σ))
+    x1 = initialize!(gm, MvNormal(μ, Σ))
     @test is_inv_sat(gm)
 
-    gm, x2 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
+    x2 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
     @test is_inv_sat(gm)
 
-    gm, x3 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
+    x3 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
     @test is_inv_sat(gm)
 
-    gm, x4 = initialize!(gm, CdMvNormal(id, μ, Σ), x2)
+    x4 = initialize!(gm, CdMvNormal(id, μ, Σ), x2)
     @test is_inv_sat(gm)
 
     observe!(gm, x3, [1.0])
@@ -43,16 +43,16 @@ end
     Σ = ScalMat(1, 1.0)
     id = 1.0 * I(1)
 
-    gm, x1 = initialize!(gm, MvNormal(μ, Σ))
+    x1 = initialize!(gm, MvNormal(μ, Σ))
     @test is_inv_sat(gm)
 
-    gm, x2 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
+    x2 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
     @test is_inv_sat(gm)
 
-    gm, x3 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
+    x3 = initialize!(gm, CdMvNormal(id, μ, Σ), x1)
     @test is_inv_sat(gm)
 
-    gm, x4 = initialize!(gm, CdMvNormal(id, μ, Σ), x2)
+    x4 = initialize!(gm, CdMvNormal(id, μ, Σ), x2)
     @test is_inv_sat(gm)
 
     observe!(gm, x4, [1.0])
