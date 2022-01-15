@@ -20,9 +20,6 @@ loglikelihood(p) = p.loglikelihood
 Base.length(cloud::Cloud) = length(cloud.particles)
 normalized_weights(cloud::Cloud) = normalize(cloud.weights, 1)
 
-
-
-
 Cloud(particles::P) where {T,P<:AbstractVector{T}} =
     Cloud{T,Vector{Float64},P}(fill(1.0 / length(particles), length(particles)), particles)
 

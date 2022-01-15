@@ -7,7 +7,8 @@ using IRTools
 using IRTools: @dynamo, IR, recurse!, Meta, arguments, xcall, Statement, self
 using IRTools.Inner: varmap, Variable
 using Accessors
-using Distributions
+import Distributions
+using Distributions: Distribution, Normal, MvNormal
 # For llvm code debugging
 using InteractiveUtils
 

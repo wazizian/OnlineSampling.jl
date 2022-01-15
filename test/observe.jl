@@ -1,3 +1,18 @@
+@testset "unwrap" begin
+    y = OnlineSampling.internal_rand(Normal())
+    val = OnlineSampling.value(y)
+
+    @test y isa OnlineSampling.TrackedObservation
+    @assert val isa Float64
+
+    @test OnlineSampling.unwrap_tracked_type(typeof(y)) == Float64
+    @test OnlineSampling.unwrap_tracked_value(y) == val
+
+    t = (0, y)
+    @test OnlineSampling.unwrap_tracked_type(typeof(t)) == Tuple{Int64,Float64}
+    @test OnlineSampling.unwrap_tracked_value(t) == (0, val)
+end
+
 @testset "dummy obs" begin
     _reset_node_mem_struct_types()
     @node function f(obs)

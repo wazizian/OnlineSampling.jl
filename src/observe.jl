@@ -3,13 +3,27 @@
 #####################################
 
 """
-    Structure describing a random variable
+    Abstract structure describing a random variable
     that will be potentially observed later
 """
-struct TrackedObservation{T,F,S,D<:Distribution{F,S}}
+abstract type AbstractTrackedObservation{T,F,S,D<:Distribution{F,S}} end
+
+# Interface
+function loglikelihood(::AbstractTrackedObservation{T,F,S,D}, ::T)::Float64 where {T,F,S,D} end
+function value(::AbstractTrackedObservation{T,F,S,D})::T where {T,F,S,D} end
+
+"""
+    Concrete tracked observation structure
+"""
+struct TrackedObservation{T,F,S,D<:Distribution{F,S}} <: AbstractTrackedObservation{T,F,S,D}
     val::T
     d::D
 end
+
+# Satisfy interface 
+loglikelihood(y::TrackedObservation{T}, obs::T) where {T} =
+    Distributions.loglikelihood(y.d, obs)
+value(y::TrackedObservation) = y.val
 
 """
     Exception raised by [internal_observe](@ref) when it encounters an observation
@@ -22,10 +36,10 @@ struct UntrackedObservation <: Exception end
     this function
 """
 function internal_observe(
-    y::TrackedObservation{T,F,S,D},
+    y::AbstractTrackedObservation{T,F,S,D},
     obs::T,
 ) where {T,F,S,D<:Distribution{F,S}}
-    return loglikelihood(y.d, obs)
+    return loglikelihood(y, obs)
 end
 
 function internal_observe(val, obs)
@@ -40,8 +54,5 @@ function internal_rand(d::Distribution)
     return TrackedObservation(rand(d), d)
 end
 
-unwrap_tracked_type(::Type{TrackedObservation{T,F,S,D}}) where {T,F,S,D} = T
-unwrap_tracked_type(::Type{T}) where {T} = T
-
-unwrap_tracked_value(to::TrackedObservation{T,F,S,D}) where {T,F,S,D} = to.val
-unwrap_tracked_value(x) = x
+unwrap_tracked_type(U::DataType) = unwrap_type(AbstractTrackedObservation, U)
+unwrap_tracked_value(x) = unwrap_value(AbstractTrackedObservation, x)
