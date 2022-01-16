@@ -40,13 +40,10 @@ ftypehasmethod(ftype, argtypes...) =
     Apply the function mod.func to the arguments of ir
 """
 function inline_map_args!(ir::IR, func::Symbol; mod::Module = @__MODULE__)
-    args = arguments(ir)
-    argtypes = IRTools.argtypes(ir)
-    # following IRTools.varargs!
-    argtypes = Core.Compiler.widenconst.(argtypes)
+    args = arguments(ir)[2:end]
     argmap = Dict{Variable,Variable}()
-    for (t, arg) in zip(argtypes, args)
-        argmap[arg] = pushfirst!(ir, Statement(Expr(:block); type = t))
+    for arg in args
+        argmap[arg] = pushfirst!(ir, Statement(Expr(:block)))
     end
     ir = varmap(var -> get(argmap, var, var), ir)
     for arg in args
