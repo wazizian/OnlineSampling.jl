@@ -74,7 +74,12 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     return new_body
 end
 
-function treat_node_calls(state_symb::Symbol, reset_symb::Symbol, ctx_symb::Symbol, body::Expr)
+function treat_node_calls(
+    state_symb::Symbol,
+    reset_symb::Symbol,
+    ctx_symb::Symbol,
+    body::Expr,
+)
     # the dict below maps unique call symbols to struct types
     node_calls = Dict{Symbol,Union{Expr,Symbol}}()
     new_body = prewalk(body) do ex
@@ -213,7 +218,7 @@ function create_structs(
     # 3. The loglikelihood
 
     # First, we build the structure for the stored variables
-    store_struct_symb = gensym()
+    @gensym store_struct_symb
     init_stored_vars = map(_ -> notinit, 1:length(stored_vars))
     store_struct_def = quote
         struct $(store_struct_symb)
@@ -299,7 +304,7 @@ function node_build(splitted)
         treat_observe_calls(state_symb, _)
         treat_rand_calls(ctx_symb, _)
         collect_stored_variables(store_symb, _)
-        _[1], treat_node_calls(state_symb, inner_reset_symb, ctx_symb,  _[2])
+        _[1], treat_node_calls(state_symb, inner_reset_symb, ctx_symb, _[2])
     end
 
     # create structs
@@ -384,7 +389,7 @@ function node_build(splitted)
         # Redirect documentation of @node definitions
         Core.@__doc__($(outer_func))
     end)
-    sh(code)
+    # sh(code)
     # println(postwalk(rmlines, code))
     return code
 end

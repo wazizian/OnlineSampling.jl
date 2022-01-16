@@ -8,6 +8,15 @@
         return z
     end
     @test ip(f, OnlineSampling.notinit) == OnlineSampling.notinit
+
+    ip(
+        println,
+        OnlineSMC.Cloud{
+            OnlineSampling.Particle{OnlineSampling.NotInit,OnlineSampling.DSOffCtx},
+        }(
+            2,
+        ),
+    )
 end
 
 @testset "hasnotinit" begin

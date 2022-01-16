@@ -137,3 +137,9 @@ end
     Core._apply(irpass, (f,), args...)
 
 (irpass::IRPass)(::typeof(Core._apply), f, args...) = Core._apply(irpass, (f,), args...)
+
+"""
+    Exception for `println` and `show`
+    to have unaltered info during debug
+"""
+(irpass::IRPass)(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)

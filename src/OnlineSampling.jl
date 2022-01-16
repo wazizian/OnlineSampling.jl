@@ -8,7 +8,8 @@ using IRTools: @dynamo, IR, recurse!, Meta, arguments, xcall, Statement, self
 using IRTools.Inner: varmap, Variable
 using Accessors
 import Distributions
-using Distributions: Distribution, Normal, MvNormal, AbstractMvNormal, Multivariate, Continuous
+using Distributions:
+    Distribution, Normal, MvNormal, AbstractMvNormal, Multivariate, Continuous
 using LinearAlgebra
 # For llvm code debugging
 using InteractiveUtils

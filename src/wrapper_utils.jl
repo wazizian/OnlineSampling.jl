@@ -7,7 +7,7 @@ function typeallows(s::Type, @nospecialize t::Type)
     ((s <: t) || (t <: s)) && return true
     isprimitivetype(t) && return false
     (t <: AbstractArray) && return typeallows(s, eltype(t))
-    isstructtype(t) && return any(u -> typeallows(s, u), t.types)
+    hasproperty(t, :types) && return any(u -> typeallows(s, u), t.types)
     return true
 end
 
@@ -20,7 +20,7 @@ function typeforces(s::Type, @nospecialize t::Type)
     (t <: s) && return true
     isprimitivetype(t) && return false
     (t <: AbstractArray) && return typeforces(s, eltype(t))
-    isstructtype(t) && return any(u -> typeforces(s, u), t.types)
+    hasproperty(t, :types) && return any(u -> typeforces(s, u), t.types)
     return false
 end
 

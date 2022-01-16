@@ -9,7 +9,10 @@
 abstract type AbstractTrackedObservation{T,F,S,D<:Distribution{F,S}} end
 
 # Interface
-function internal_observe(::AbstractTrackedObservation{T,F,S,D}, ::T)::Float64 where {T,F,S,D} end
+function internal_observe(
+    ::AbstractTrackedObservation{T,F,S,D},
+    ::T,
+)::Float64 where {T,F,S,D} end
 function value(::AbstractTrackedObservation{T,F,S,D})::T where {T,F,S,D} end
 
 """
