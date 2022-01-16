@@ -13,16 +13,16 @@ const rtol = 0.05
 
 rankone(x::AbstractVector) = x * x'
 
-Statistics.cov(cloud::Cloud{MvParticle}) =
+Statistics.cov(cloud::OnlineSMC.Cloud{MvParticle}) =
     expectation(rankone, cloud) - rankone(expectation(identity, cloud))
-Statistics.mean(cloud::Cloud{MvParticle}) = expectation(identity, cloud)
+Statistics.mean(cloud::OnlineSMC.Cloud{MvParticle}) = expectation(identity, cloud)
 
 @testset "tools" begin
     d = MvNormal([0.0], ScalMat(1, 1.0))
     xs = rand(d, N)
     @assert size(xs) == (1, N)
 
-    cloud = Cloud([MvParticle(x, 0.0) for x in eachcol(xs)])
+    cloud = OnlineSMC.Cloud([MvParticle(x, 0.0) for x in eachcol(xs)])
     @test mean(cloud) ≈ mean(d) atol = atol
     @test cov(cloud) ≈ cov(d) atol = atol
 
@@ -42,7 +42,7 @@ end
         p.loglikelihood = -0.25 * (3 * only(p.val) + 1 - only(obs_y))^2
     end
 
-    cloud = Cloud{MvParticle}(N)
+    cloud = OnlineSMC.Cloud{MvParticle}(N)
     new_cloud = OnlineSMC.smc_step(proposal!, cloud)
 
     target = MvNormal([3 / 11], ScalMat(1, 2 / 11))
@@ -69,7 +69,7 @@ end
     end
 
     T = 10
-    cloud = Cloud{MvParticle}(N)
+    cloud = OnlineSMC.Cloud{MvParticle}(N)
     for _ = 1:(T-1)
         cloud = OnlineSMC.smc_step(proposal!, cloud)
     end

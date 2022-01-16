@@ -6,11 +6,11 @@
     end
     @node function test()
         det = @node counter()
-        smc = @node particles = 1 counter()
+        smc = @node particles = 100 counter()
 
-        smc isa Cloud
-        length(smc) == 100
-        all(v -> v == det, smc)
+        @test smc isa Cloud
+        @test length(smc) == 100
+        @test all(v -> v == det, smc)
     end
 
     @node T = 5 test()

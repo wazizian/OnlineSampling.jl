@@ -1,3 +1,5 @@
+using OnlineSampling.DS
+
 @testset "Observe parent" begin
     gm = GraphicalModel(Int)
     @test is_inv_sat(gm)

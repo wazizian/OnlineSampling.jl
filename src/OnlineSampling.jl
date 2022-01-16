@@ -8,7 +8,7 @@ using IRTools: @dynamo, IR, recurse!, Meta, arguments, xcall, Statement, self
 using IRTools.Inner: varmap, Variable
 using Accessors
 import Distributions
-using Distributions: Distribution, Normal, MvNormal
+using Distributions: Distribution, Normal, MvNormal, AbstractMvNormal, Multivariate, Continuous
 using LinearAlgebra
 # For llvm code debugging
 using InteractiveUtils
@@ -16,18 +16,21 @@ using InteractiveUtils
 using Reexport
 
 include("delayed_sampling/DelayedSampling.jl")
-@reexport using ..DelayedSampling
+import ..DelayedSampling as DS
+export DelayedSampling
 
 include("online_smc/OnlineSMC.jl")
-@reexport using ..OnlineSMC
-export OnlineSMC
+import ..OnlineSMC as SMC
+import ..OnlineSMC: Cloud, expectation
+export OnlineSMC, Cloud, expectation
 
 include("macro_utils.jl")
 include("ir_utils.jl")
 include("wrapper_utils.jl")
 include("notinit_removal.jl")
-include("smc_utils.jl")
 include("observe.jl")
+include("tracked_rv.jl")
+include("smc_utils.jl")
 include("ir_pass.jl")
 include("node_build.jl")
 include("node_run.jl")
