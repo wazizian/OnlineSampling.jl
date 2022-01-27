@@ -4,7 +4,7 @@ using Chain
 using MacroTools
 using MacroTools: prewalk, postwalk
 using IRTools
-using IRTools: @dynamo, IR, recurse!, Meta, arguments, xcall, Statement, self
+using IRTools: @dynamo, IR, Meta, arguments, xcall, Statement, self
 using IRTools.Inner: varmap, Variable
 using Accessors
 import Distributions
