@@ -125,7 +125,8 @@ ir_pass(f, args...) = IRPass()(f, args...)
 end
 
 """
-    Manual workarounds for `Core._apply` and `Core._apply_iterate`.
+    Modification of `IRTools.recurse!` to properly handle 
+    `Core._apply` and `Core._apply_iterate`
 """
 # Related Issues
 # https://github.com/FluxML/IRTools.jl/issues/74
@@ -133,10 +134,28 @@ end
 # https://github.com/JuliaLabs/Cassette.jl/issues/162
 # The current workaround is inspired by Zygote
 # https://github.com/FluxML/Zygote.jl/blob/3a63df8edb3b613107761ff829ca61ed393ce2dd/src/lib/lib.jl#L188
-(irpass::IRPass)(::typeof(Core._apply_iterate), ::typeof(Base.iterate), f, args...) =
-    Core._apply(irpass, (f,), args...)
+function recurse!(ir, to = self)
+    for (x, st) in ir
+        isexpr(st.expr, :call) || continue
+        if length(st.expr.args) ≥ 2 &&
+           st.expr.args[1] == GlobalRef(Core, :_apply_iterate) &&
+           st.expr.args[2] == GlobalRef(Base, :iterate)
+            funcarg = insert!(ir, x, xcall(:tuple, st.expr.args[3]))
+            ir[x] = xcall(Core, :_apply, to, funcarg, st.expr.args[4:end]...)
+        elseif st.expr.args[1] == GlobalRef(Core, :_apply)
+            funcarg = insert!(ir, x, xcall(:tuple, st.expr.args[2]))
+            ir[x] = xcall(Core, :_apply, to, funcarg, st.expr.args[3:end]...)
+        else
+            ir[x] = Expr(:call, to, st.expr.args...)
+        end
+    end
+    return ir
+end
+# Equivalent to the following
+# (irpass::IRPass)(::typeof(Core._apply_iterate), ::typeof(Base.iterate), f, args...) =
+#     Core._apply(irpass, (f,), args...)
 
-(irpass::IRPass)(::typeof(Core._apply), f, args...) = Core._apply(irpass, (f,), args...)
+# (irpass::IRPass)(::typeof(Core._apply), f, args...) = Core._apply(irpass, (f,), args...)
 
 """
     Exception for `println` and `show`
