@@ -33,3 +33,6 @@ format:
 
 interactive:
 	julia --project -e "using Revise, OnlineSampling, MacroTools, IRTools" -i
+
+demo:
+	julia --project -e "using Revise, OnlineSampling, MacroTools, IRTools;include(\"ex.jl\")" -i
