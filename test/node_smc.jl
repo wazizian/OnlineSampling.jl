@@ -20,7 +20,7 @@ end
     _reset_node_mem_struct_types()
     Σ = ScalMat(1, 1.0)
     @node function model()
-        @init x = rand(MvNormal([0.], Σ))
+        @init x = rand(MvNormal([0.0], Σ))
         x = rand(MvNormal(@prev(x), Σ))
         y = rand(MvNormal(x, Σ))
         return x, y
@@ -31,11 +31,9 @@ end
         return x
     end
     @node function main(obs)
-        x = @node particles=1000 hmm(obs)
+        x = @node particles = 1000 hmm(obs)
     end
 
     obs = Vector{Float64}(1:5)
-    @test_broken (@node T=5 main(obs))
+    @test_broken (@node T = 5 main(obs))
 end
-        
-
