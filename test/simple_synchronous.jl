@@ -105,7 +105,7 @@ end
     end
     arr = []
     @node T = 5 f(arr)
-    @test arr == [0, 0, 1, 1, 2]
+    @test arr == [0, 1, 1, 2]
 end
 
 @testset "ill-formed prev" begin

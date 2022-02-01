@@ -40,18 +40,16 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
                     @init $(walk(var)) = $(walk(val))
                 end
             elseif @capture(ex, var_ = val_) && var in initialized_vars
-                walked_var = walk(var)
                 walked_val = walk(val)
                 return (reset ?
-                    # if reset, the value of var = val is actually the init value of var
-                    quote
-                        begin
-                            $(walked_val)
-                            $(walked_var)
-                        end
-                    end : quote
-                        $(walked_var) = $(walked_val)
-                    end)
+                        # if reset, the value of var = val is actually the init value of var
+                        quote
+                    begin
+                        $(var)
+                    end
+                end : quote
+                    $(var) = $(walked_val)
+                end)
             else
                 return nothing
             end
@@ -160,15 +158,32 @@ function treat_node_calls(
     return node_calls, new_body
 end
 
-function collect_stored_variables(store_symb::Symbol, body::Expr)
-    # Collect stored variables, normalize & insert call to store
+"""
+    Collect variables which appear inside `@prev` calls
+"""
+function collect_stored_variables(store_symb::Symbol, reset_symb::Symbol, body::Expr)
     stored_vars = Set{Symbol}()
-    new_body = postwalk(body) do ex
+    postwalk(body) do ex
         @capture(ex, (@prev e_) | (@prev(e_))) || return ex
         isexpr(e, Symbol) ||
             error("Ill-formed @prev: got $(ex) but prev only supports variables")
         push!(stored_vars, e)
         return quote
+            $(reset_symb) ? $(@__MODULE__).notinit : $(store_symb).$(e)
+        end
+    end
+    return stored_vars, body
+end
+
+"""
+    Replace `@prev(x)` statements with calls to the store
+"""
+function fetch_stored_variables(store_symb::Symbol, reset::Bool, body::Expr)
+    new_body = postwalk(body) do ex
+        @capture(ex, (@prev e_) | (@prev(e_))) || return ex
+        return reset ? quote
+            $(@__MODULE__).notinit 
+        end : quote
             $(store_symb).$(e)
         end
     end
@@ -176,7 +191,7 @@ function collect_stored_variables(store_symb::Symbol, body::Expr)
     prewalk(new_body) do ex
         @capture(ex, @prev _) && error("Ill formed @prev call inside node: found $(ex)")
     end
-    return stored_vars, new_body
+    return new_body
 end
 
 function store_stored_variables(
@@ -303,7 +318,7 @@ function node_build(splitted)
         push_front(assign_store, _)
         treat_observe_calls(state_symb, _)
         treat_rand_calls(ctx_symb, _)
-        collect_stored_variables(store_symb, _)
+        collect_stored_variables(store_symb, inner_reset_symb, _)
         _[1], treat_node_calls(state_symb, inner_reset_symb, ctx_symb, _[2])
     end
 
@@ -313,6 +328,7 @@ function node_build(splitted)
 
     # not reset pass
     no_reset_body = @chain new_body begin
+        fetch_stored_variables(store_symb, false, _)
         treat_initialized_vars(false, _)
         store_stored_variables(state_symb, store_symb, stored_vars, _)
         push_front(:($(inner_reset_symb) = false), _)
@@ -321,6 +337,7 @@ function node_build(splitted)
 
     # reset pass
     reset_body = @chain new_body begin
+        fetch_stored_variables(store_symb, true, _)
         treat_initialized_vars(true, _)
         push_front(reset_code, _)
         store_stored_variables(state_symb, store_symb, stored_vars, _)
