@@ -182,7 +182,7 @@ function fetch_stored_variables(store_symb::Symbol, reset::Bool, body::Expr)
     new_body = postwalk(body) do ex
         @capture(ex, (@prev e_) | (@prev(e_))) || return ex
         return reset ? quote
-            $(@__MODULE__).notinit 
+            $(@__MODULE__).notinit
         end : quote
             $(store_symb).$(e)
         end

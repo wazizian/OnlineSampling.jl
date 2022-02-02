@@ -35,6 +35,9 @@ include("custom_testset.jl")
     @testset "notinit" begin
         include(joinpath(testdir, "notinit.jl"))
     end
+    @testset "notinit propagation" begin
+        include(joinpath(testdir, "notinit_propagation.jl"))
+    end
     @testset "synchronous constructs" begin
         include(joinpath(testdir, "simple_synchronous.jl"))
     end
