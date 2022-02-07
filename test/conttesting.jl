@@ -6,7 +6,7 @@ testdir = dirname(@__FILE__)
 
 entr([testdir], [OnlineSampling]; postpone = false, pause = 0.001) do
     revise(OnlineSampling)
-    IRTools.refresh(OnlineSampling.IRPass())
+    IRTools.refresh(OnlineSampling.irpass)
     Base.run(`clear`)
     try
         include(joinpath(testdir, "runtests.jl"))

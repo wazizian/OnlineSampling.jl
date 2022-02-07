@@ -1,16 +1,23 @@
 @testset "notinit edge cases" begin
     _reset_node_mem_struct_types()
-    ip = OnlineSampling.IRPass(true)
-    ip(println, OnlineSampling.notinit)
-    @test ip(Base.iterate, [1.0], OnlineSampling.notinit) == OnlineSampling.notinit
-    function f(x)
+    ip = OnlineSampling.irpass
+    reset_println(args...) = (OnlineSampling.node_no_reset_marker(); println(args...))
+    ip(reset_println, OnlineSampling.notinit)
+    function g()
+        OnlineSampling.node_reset_marker()
+        return Base.iterate([1.0], OnlineSampling.notinit)
+    end
+    @test ip(g) == OnlineSampling.notinit
+    function f()
+        OnlineSampling.node_reset_marker()
+        x = OnlineSampling.notinit
         y, z = x
         return z
     end
-    @test ip(f, OnlineSampling.notinit) == OnlineSampling.notinit
+    @test ip(f) == OnlineSampling.notinit
 
     ip(
-        println,
+        reset_println,
         OnlineSMC.Cloud{
             OnlineSampling.Particle{OnlineSampling.NotInit,OnlineSampling.DSOffCtx},
         }(
@@ -68,7 +75,7 @@ end
     end
     ir = @code_ir f(0)
 
-    @test OnlineSampling.is_node(ir)
+    @test !OnlineSampling.is_node(ir)
     @test OnlineSampling.is_reset_node(ir)
     @test !OnlineSampling.is_node(ir; markers = (:node_no_reset_marker,))
 end

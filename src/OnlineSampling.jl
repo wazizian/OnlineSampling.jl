@@ -28,7 +28,7 @@ export OnlineSMC, Cloud, expectation
 include("macro_utils.jl")
 include("ir_utils.jl")
 include("wrapper_utils.jl")
-include("notinit_removal.jl")
+include("notinit.jl")
 include("notinit_propagation.jl")
 include("observe.jl")
 include("tracked_rv.jl")

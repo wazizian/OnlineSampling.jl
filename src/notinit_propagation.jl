@@ -9,12 +9,31 @@ using MacroTools: postwalk
 const notinitGlobalRef = GlobalRef(@__MODULE__, :notinit)
 
 """
-    Determine whether an Expr contains a notinit
+    Determines whether an expr refers to the current module (overapproximation)
+    accepts any expr of the form `*.OnlineSampling`
+"""
+iscurrentmodule(m::Module) = m == @__MODULE__
+iscurrentmodule(g::GlobalRef) = iscurrentmodule(g.name)
+iscurrentmodule(ex::Expr) = (ex.head == :.) && iscurrentmodule(ex.args[end])
+iscurrentmodule(s::Symbol) = s == Symbol(@__MODULE__)
+iscurrentmodule(q::QuoteNode) = iscurrentmodule(q.value)
+iscurrentmodule(::Any) = false
+
+"""
+    Determine whether an Expr contains a notinit (overapproximation)
 """
 isnotinit(notinits::AbstractSet{Variable}, v::Variable) = v in notinits
 isnotinit(notinits::AbstractSet{Variable}, ex::Expr) =
-    any(arg -> isnotinit(notinits, arg), ex.args)
-isnotinit(::AbstractSet{Variable}, g::GlobalRef) = g == notinitGlobalRef
+    (
+        isexpr(ex, :call) && any(
+            tpl -> (iscurrentmodule(tpl[1]) && isnotinit(notinits, tpl[2])),
+            zip(ex.args[1:end-1], ex.args[2:end]),
+        )
+    ) || any(arg -> isnotinit(notinits, arg), ex.args)
+isnotinit(notinits::AbstractSet{Variable}, q::QuoteNode) = isnotinit(notinits, q.value)
+isnotinit(notinits::AbstractSet{Variable}, g::GlobalRef) =
+    iscurrentmodule(g.mod) && isnotinit(notinits, g.name)
+isnotinit(::AbstractSet{Variable}, s::Symbol) = s == :notinit
 isnotinit(::AbstractSet{Variable}, ::NotInit) = true
 isnotinit(::AbstractSet{Variable}, ::Any) = false
 

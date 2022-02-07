@@ -3,10 +3,7 @@
     by detecting the special node_marker() call
 """
 is_node(::Nothing; markers::Any) = false
-function is_node(
-    ir::IR;
-    markers = (:node_marker, :node_reset_marker, :node_no_reset_marker),
-)
+function is_node(ir::IR; markers = (:node_marker,))
     isempty(ir) && return false
     isn = false
     # TODO (impr): stop the walk when a marker is found (ie adapt stopwalk to ir)
@@ -28,7 +25,7 @@ is_reset_node(ir) = is_node(ir; markers = (:node_reset_marker,))
 """
     Determines if the function f whose type is ftype has a method
     for arguments of types argtypes
-    Inspired by the code of IRTools.meta
+    Inspired by the code of `IRTools.meta`
 """
 ftypehasmethod(ftype, argtypes...) =
     ftype.name.module === Core.Compiler ||
@@ -51,3 +48,37 @@ function inline_map_args!(ir::IR, func::Symbol; mod::Module = @__MODULE__)
     end
     return ir
 end
+
+
+"""
+    Modification of `IRTools.recurse!` to properly handle 
+    `Core._apply` and `Core._apply_iterate`
+"""
+# Related Issues
+# https://github.com/FluxML/IRTools.jl/issues/74
+# https://github.com/JuliaLabs/Cassette.jl/issues/146
+# https://github.com/JuliaLabs/Cassette.jl/issues/162
+# The current workaround is inspired by Zygote
+# https://github.com/FluxML/Zygote.jl/blob/3a63df8edb3b613107761ff829ca61ed393ce2dd/src/lib/lib.jl#L188
+function recurse!(ir, to = self)
+    for (x, st) in ir
+        isexpr(st.expr, :call) || continue
+        if length(st.expr.args) ≥ 2 &&
+           st.expr.args[1] == GlobalRef(Core, :_apply_iterate) &&
+           st.expr.args[2] == GlobalRef(Base, :iterate)
+            funcarg = insert!(ir, x, xcall(:tuple, st.expr.args[3]))
+            ir[x] = xcall(Core, :_apply, to, funcarg, st.expr.args[4:end]...)
+        elseif st.expr.args[1] == GlobalRef(Core, :_apply)
+            funcarg = insert!(ir, x, xcall(:tuple, st.expr.args[2]))
+            ir[x] = xcall(Core, :_apply, to, funcarg, st.expr.args[3:end]...)
+        else
+            ir[x] = Expr(:call, to, st.expr.args...)
+        end
+    end
+    return ir
+end
+# Equivalent to the following
+# irpass(::typeof(Core._apply_iterate), ::typeof(Base.iterate), f, args...) =
+#     Core._apply(irpass, (f,), args...)
+
+# irpass(::typeof(Core._apply), f, args...) = Core._apply(irpass, (f,), args...)

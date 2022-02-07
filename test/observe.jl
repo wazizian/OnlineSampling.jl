@@ -22,12 +22,9 @@ end
 
     obs = [1.0, 2.0, 3.0]
 
-    ir = OnlineSampling.@node_ir irpass = false f(obs)
+    ir = OnlineSampling.@node_ir f(obs)
     @test OnlineSampling.is_node(ir)
     @test !OnlineSampling.is_reset_node(ir)
-
-    ir = OnlineSampling.@node_ir irpass = true f(obs)
-    @test_broken OnlineSampling.is_node(ir)
 
     @node T = 3 f(obs)
 end

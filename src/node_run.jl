@@ -1,5 +1,5 @@
 function build_call(f, args...)
-    return :($(@__MODULE__).ir_pass($(f), $(args...)))
+    return :($(f)($(args...)))
 end
 
 function node_run(macro_args...)
@@ -7,7 +7,7 @@ function node_run(macro_args...)
     call = macro_args[end]
     @capture(call, f_(args__)) || error("Improper usage of @node with $(call)")
 
-    # Determine if number of iterations is provide
+    # Determine if number of iterations is provided
     n_iterations_expr = nothing
     for macro_arg in macro_args
         @capture(macro_arg, T = val_) && (n_iterations_expr = val; break)

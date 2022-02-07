@@ -372,9 +372,17 @@ function node_build(splitted)
     outer_reset_symb = gensym()
     inner_func_call = quote
         $(tmp) = if $(outer_reset_symb)
-            $(reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
+            $(@__MODULE__).irpass(
+                $(reset_inner_name),
+                $(splitted[:args]...);
+                $(splitted[:kwargs]...),
+            )
         else
-            $(no_reset_inner_name)($(splitted[:args]...); $(splitted[:kwargs]...))
+            $(@__MODULE__).irpass(
+                $(no_reset_inner_name),
+                $(splitted[:args]...);
+                $(splitted[:kwargs]...),
+            )
         end
     end
 

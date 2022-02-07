@@ -65,7 +65,8 @@ end
     end
     arr = []
     @node T = 2 f(arr)
-    @test arr[2] == [2, 2]
+    @test arr[1] == [2, 2]
+    @test length(arr) == 1
 end
 
 @testset "delayed counter" begin
@@ -91,7 +92,7 @@ end
     end
     arr = []
     @node T = 5 f(arr)
-    @test arr[2:end] == collect(0:3)
+    @test arr == collect(0:3)
 end
 
 @testset "pathological prev" begin

@@ -1,6 +1,22 @@
+@testset "isnotinit" begin
+    e = :(Base.getproperty(OnlineSampling, :notinit))
+    @test OnlineSampling.isnotinit(Set{OnlineSampling.Variable}(), e)
+end
+
+
 @testset "addition" begin
     function f(x)
         y = OnlineSampling.notinit
+        return x + y
+    end
+    ir = @code_ir f(1)
+    ir = OnlineSampling.propagate_notinits!(ir)
+    @test IRTools.evalir(ir, nothing, 1) === OnlineSampling.notinit
+end
+
+@testset "getproperty" begin
+    function f(x)
+        y = Base.getproperty(OnlineSampling, :notinit)
         return x + y
     end
     ir = @code_ir f(1)

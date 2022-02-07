@@ -40,3 +40,5 @@ end
 
 unwrap_tracked_type(U::DataType) = unwrap_type(AbstractTrackedObservation, U)
 unwrap_tracked_value(x) = unwrap_value(AbstractTrackedObservation, x)
+
+typeallowstracked(t) = typeallows(AbstractTrackedObservation, t)
