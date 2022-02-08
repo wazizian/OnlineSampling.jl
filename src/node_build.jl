@@ -81,27 +81,20 @@ function treat_node_calls(
     # the dict below maps unique call symbols to struct types
     node_calls = Dict{Symbol,Union{Expr,Symbol}}()
     new_body = prewalk(body) do ex
-        @capture(
-            ex,
-            # TODO (impr): improve below
-            (@node cond_ particles = val_ DS = dsval_ f_(args__)) |
-            (@node particles = val_ DS = dsval_ f_(args__)) |
-            (@node cond_ particles = val_ f_(args__)) |
-            (@node particles = val_ f_(args__)) |
-            (@node cond_ f_(args__)) |
-            (@node f_(args__))
-        ) || return ex
-
-        cond = isnothing(cond) ? :(false) : cond
-        dsval = isnothing(dsval) ? :(false) : dsval
-
-        # detect smc and compute particles
+        @capture(ex, @node margs__ f_(args__)) || return ex
         node_particles = 0
-        if !isnothing(val)
-            try
-                node_particles = eval(val)::Integer
-            catch
-                error("Particle number $(val) should be an integer constant")
+        cond = dsval = :(false)
+        for marg in margs
+            if @capture(marg, particles = val_)
+                try
+                    node_particles = eval(val)::Integer
+                catch
+                    error("Particle number $(val) should be an integer constant")
+                end
+            elseif @capture(marg, DS = val_)
+                dsval = val
+            else
+                cond = marg
             end
         end
 
