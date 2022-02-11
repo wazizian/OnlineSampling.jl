@@ -8,6 +8,21 @@ using MacroTools: postwalk
 """
 const notinitGlobalRef = GlobalRef(@__MODULE__, :notinit)
 
+const protectGlobalRef = GlobalRef(@__MODULE__, :internal_protect)
+
+"""
+    Protect an expr from notinit propagation
+"""
+macro protect(ex)
+    new_ex = postwalk(ex) do e
+        e isa Symbol && return Expr(:call, protectGlobalRef, e)
+        return e
+    end
+    return esc(new_ex)
+end
+
+@inline internal_protect(x) = x
+
 """
     Determines whether an expr refers to the current module (overapproximation)
     accepts any expr of the form `*.OnlineSampling`
@@ -25,9 +40,9 @@ iscurrentmodule(::Any) = false
 isnotinit(notinits::AbstractSet{Variable}, v::Variable) = v in notinits
 isnotinit(notinits::AbstractSet{Variable}, ex::Expr) =
     (
-        isexpr(ex, :call) && any(
-            tpl -> (iscurrentmodule(tpl[1]) && isnotinit(notinits, tpl[2])),
-            zip(ex.args[1:end-1], ex.args[2:end]),
+        isexpr(ex, :call) && anytwo(
+            (mod, target) -> iscurrentmodule(mod) && isnotinit(notinits, target),
+            ex.args,
         )
     ) || any(arg -> isnotinit(notinits, arg), ex.args)
 isnotinit(notinits::AbstractSet{Variable}, q::QuoteNode) = isnotinit(notinits, q.value)
@@ -55,7 +70,9 @@ function block_propagate_notinits!(
     end
 
     for (x, stmt) in b
-        if isnotinit(notinits, stmt.expr)
+        if isexpr(stmt.expr, :call) && stmt.expr.args[1] == protectGlobalRef
+            continue
+        elseif isnotinit(notinits, stmt.expr)
             push!(notinits, x)
             b[x] = Statement(notinitGlobalRef; type = NotInit)
         end

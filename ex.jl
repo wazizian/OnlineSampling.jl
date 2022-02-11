@@ -1,7 +1,7 @@
 using OnlineSampling
 
 clear() = (_ = Base.run(`clear`))
-reload() = (OnlineSampling._reset_node_mem_struct_types(); clear(); include("ex.jl"))
+reload() = (clear(); include("ex.jl"))
 
 @node function counter()
     @init x = 0

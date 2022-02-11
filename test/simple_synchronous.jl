@@ -1,5 +1,4 @@
 @testset "counter" begin
-    _reset_node_mem_struct_types()
     @node function counter(arr)
         @init i = 1
         i = (@prev i) + 1
@@ -17,7 +16,6 @@
 end
 
 @testset "nested counter" begin
-    _reset_node_mem_struct_types()
     incr_fun(x::Int)::Int = x + 1
     @assert @isdefined(incr_fun)
 
@@ -45,7 +43,6 @@ end
 end
 
 @testset "nothing propagation" begin
-    _reset_node_mem_struct_types()
     @node function f(arr)
         @init i = true
         i = !@prev(i)
@@ -56,7 +53,6 @@ end
 end
 
 @testset "mutable streams" begin
-    _reset_node_mem_struct_types()
     @node function f(arr)
         @init m = [2, 2]
         m = [1, 2]
@@ -70,7 +66,6 @@ end
 end
 
 @testset "delayed counter" begin
-    _reset_node_mem_struct_types()
     @node function f(arr)
         @init x = 0
         @init y = 0
@@ -84,7 +79,6 @@ end
 end
 
 @testset "reversed def & prev" begin
-    _reset_node_mem_struct_types()
     @node function f(arr)
         @init y = 0
         y = @prev(y) + 1
@@ -96,7 +90,6 @@ end
 end
 
 @testset "pathological prev" begin
-    _reset_node_mem_struct_types()
     @node function f(arr)
         @init x = 0
         @init y = 0
@@ -110,7 +103,6 @@ end
 end
 
 @testset "ill-formed prev" begin
-    _reset_node_mem_struct_types()
     @node function f()
         y = @prev(y) + 1
     end
@@ -118,13 +110,11 @@ end
 end
 
 @testset "invalid argument" begin
-    _reset_node_mem_struct_types()
     @node myparticularfunction(x::Bool) = x
     @test_throws MethodError (@node T = 1 myparticularfunction(0))
 end
 
 @testset "one line counter" begin
-    _reset_node_mem_struct_types()
     @node function f(arr)
         x = (@prev x) + (@init x = 1)
         push!(arr, x)
@@ -138,7 +128,6 @@ end
 end
 
 @testset "side-effect init" begin
-    _reset_node_mem_struct_types()
     @node function f(arr)
         @init x = (push!(arr, 0); 1)
     end

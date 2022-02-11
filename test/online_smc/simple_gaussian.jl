@@ -36,10 +36,11 @@ end
 
 @testset "observe child" begin
     function proposal!(p::MvParticle)
-        p.val = rand(MvNormal([0.0], ScalMat(1, 1.0)))
-        y = rand(MvNormal(3 .* p.val .+ 1, ScalMat(1, 2.0)))
+        val = rand(MvNormal([0.0], ScalMat(1, 1.0)))
+        y = rand(MvNormal(3 .* val .+ 1, ScalMat(1, 2.0)))
         obs_y = 2.0
-        p.loglikelihood = -0.25 * (3 * only(p.val) + 1 - only(obs_y))^2
+        loglikelihood = -0.25 * (3 * only(val) + 1 - only(obs_y))^2
+        return MvParticle(val, loglikelihood)
     end
 
     cloud = OnlineSMC.Cloud{MvParticle}(N)
@@ -64,8 +65,8 @@ end
     # X_{t+1} ∼ N(X_t, 1)
     # observe Y_T ∼ N(X_T, 1)
     function proposal!(p::MvParticle)
-        p.val = rand(MvNormal(p.val, ScalMat(1, 1.0)))
-        p.loglikelihood = 0.0
+        val = rand(MvNormal(p.val, ScalMat(1, 1.0)))
+        return MvParticle(val, 0.0)
     end
 
     T = 10
@@ -75,8 +76,9 @@ end
     end
     obs_y = [1.0]
     cloud = OnlineSMC.smc_step(cloud) do p
-        proposal!(p)
-        p.loglikelihood = -0.5 * (only(obs_y) - only(p.val))^2
+        new_p = proposal!(p)
+        loglikelihood = -0.5 * (only(obs_y) - (only ∘ OnlineSMC.value)(new_p))^2
+        return MvParticle(OnlineSMC.value(new_p), loglikelihood)
     end
 
     σ = sqrt(T / (T + 1))

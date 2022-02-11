@@ -2,11 +2,28 @@
     Replace [@observe](@ref) statements with calls to [internal_observe](@ref)
     Note that it must be called before the pass on nodes.
 """
-function treat_observe_calls(state_symb::Symbol, body::Expr)
+function treat_observe_calls(body::Expr)
     return postwalk(body) do ex
         @capture(ex, (@observe var_ val_) | (@observe(var_, val_))) || return ex
         return quote
-            $(state_symb).loglikelihood += @node $(@__MODULE__).observe($(var), $(val))
+            @node $(@__MODULE__).observe($(var), $(val))
+        end
+    end
+end
+
+"""
+    Global reference to the shadow function `internal_update_loglikelihood`
+"""
+const loglikelihoodCall = :($(Symbol(@__MODULE__)).internal_update_loglikelihood)
+
+"""
+    Replace `internal_update_loglikelihood` with an actual loglikelihood update
+"""
+function treat_loglikelihood_updates(llsymb::Symbol, body::Expr)
+    return postwalk(body) do ex
+        isexpr(ex, :call) && ex.args[1] == loglikelihoodCall || return ex
+        return quote
+            $(llsymb) += $(ex.args[2])
         end
     end
 end
@@ -72,18 +89,15 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
     return new_body
 end
 
-function treat_node_calls(
-    state_symb::Symbol,
-    reset_symb::Symbol,
-    ctx_symb::Symbol,
-    body::Expr,
-)
-    # the dict below maps unique call symbols to struct types
-    node_calls = Dict{Symbol,Union{Expr,Symbol}}()
-    new_body = prewalk(body) do ex
+"""
+    Handle `@node` calls.
+    Must be called before the init, stored variables and loglikelihood passes
+"""
+function treat_node_calls(ctxsymb::Symbol, body::Expr)
+    return prewalk(body) do ex
         @capture(ex, @node margs__ f_(args__)) || return ex
         node_particles = 0
-        cond = dsval = :(false)
+        reset_cond = dsval = :(false)
         for marg in margs
             if @capture(marg, particles = val_)
                 try
@@ -94,11 +108,9 @@ function treat_node_calls(
             elseif @capture(marg, DS = val_)
                 dsval = val
             else
-                cond = marg
+                reset_cond = marg
             end
         end
-
-        mem_struct_type = get_node_mem_struct_type(f)
 
         if node_particles > 0
             return quote
@@ -109,9 +121,8 @@ function treat_node_calls(
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here
                     # guarantees that this node_call will be treated at the next iteration
-                    @node $(cond) $(@__MODULE__).smc(
+                    @node $(reset_cond) $(@__MODULE__).smc(
                         $(node_particles),
-                        $(mem_struct_type),
                         $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).DSOffCtx,
                         $(f),
                         $(args...),
@@ -119,36 +130,20 @@ function treat_node_calls(
                 end
             end
         end
-        # get new id
-        call_id = gensym()
-        node_calls[call_id] = mem_struct_type
-
-        # integrate reset condition
-        reset_cond = :($(reset_symb) || $(cond))
-        for arg in [ctx_symb, reset_cond, :($(state_symb).$(call_id))]
-            insert!(args, 1, arg)
-        end
-
-        # update the score of the current node
-        update_score = quote
-            $(state_symb).loglikelihood +=
-                $(@__MODULE__).OnlineSMC.loglikelihood($(state_symb).$(call_id))
-        end
 
         tmp = gensym()
+        @gensym next state ll ret
         return quote
-            $(tmp) = $(f)($(args...))
-            $(update_score)
-            $(tmp)
+            @init $(next) = $(f)(:(nothing), true, $(ctxsymb), $(args...))
+            $(next) = $(f)(@prev($(state)), $(reset_cond), $(ctxsymb), $(args...))
+            # TODO: handle tuples on LHS and remove this line
+            $(state) = $(next)[1]
+            $(ll) = $(next)[2]
+            $(ret) = $(next)[3]
+            $(loglikelihoodCall)($(ll))
+            $(ret)
         end
     end
-
-    # make sure there are no init left
-    prewalk(new_body) do ex
-        @capture(ex, @node) && error("Ill formed @node call inside node: found $(ex)")
-    end
-
-    return node_calls, new_body
 end
 
 """
@@ -187,102 +182,31 @@ function fetch_stored_variables(store_symb::Symbol, reset::Bool, body::Expr)
     return new_body
 end
 
-function store_stored_variables(
-    state_symb::Symbol,
-    store_symb::Symbol,
-    stored_vars::Set{Symbol},
-    body::Expr,
-)
-    # store the values for the next time step
-    return postwalk(body) do ex
-        (@capture(ex, var_ = val_) && var in stored_vars) || return ex
-        set_expr = quote
-            $(@__MODULE__).setproperties($(state_symb).store, $(var) = $(var))
-        end
-        return quote
-            begin
-                $(var) = $(val)
-                $(state_symb).store = $(set_expr)
-                $(var)
-            end
-        end
-    end
+"""
+    Build the stored variable struct
+"""
+function gather_stored_variables(stored_vars::Set{Symbol})
+    stored_vars = collect(stored_vars)
+    quoted_vars = map(var -> QuoteNode(var), stored_vars)
+    return :(NamedTuple{($(quoted_vars...),)}(($(stored_vars...),)))
 end
 
-function create_structs(
-    node_name::Symbol,
-    state_symb::Symbol,
-    stored_vars::Set{Symbol},
-    node_calls::Dict{Symbol,Union{Expr,Symbol}},
-)
-    # TODO (impr) use type info
-
-    # Build the struct for the current node
-    # (to be inserted before func)
-    # It is a mutable struct, whose name is deterministic
-    # and given by get_node_mem_struct_type(node_name), and which contains,
-    # 1. An immutable struct which stores the variables which appear in prev
-    # 2. The mutable structs of the nodes called inside
-    # 3. The loglikelihood
-
-    # First, we build the structure for the stored variables
-    @gensym store_struct_symb
-    init_stored_vars = map(_ -> notinit, 1:length(stored_vars))
-    store_struct_def = quote
-        struct $(store_struct_symb)
-            $(stored_vars...)
+"""
+    Augment returns with stored variables and loglikelihood
+"""
+function augment_returns(stored_vars::Set{Symbol}, llsymb::Symbol, body::Expr)
+    stored_variables_ret = gather_stored_variables(stored_vars)
+    new_body = postwalk(body) do ex
+        @capture(ex, return ret_) || return ex
+        return quote
+            return $(@__MODULE__).@protect ($(stored_variables_ret), $(llsymb), $(ret))
         end
     end
-    # add the constructor only if stored_vars != emptyset
-    full_store_struct_def =
-        isempty(stored_vars) ? store_struct_def :
-        quote
-            $(store_struct_def)
-            # constructor
-            $(store_struct_symb)() = $(store_struct_symb)($(init_stored_vars...))
-        end
-
-    # Then, we build the full structure for the node
-    mem_struct_symb = get_node_mem_struct_type(node_name)
-    node_call_fields = [:($(id)::$(type)) for (id, type) in node_calls]
-    node_call_inits = [:($(type)()) for type in values(node_calls)]
-    mem_struct_def = quote
-        mutable struct $(mem_struct_symb)
-            loglikelihood::Float64
-            store::$(store_struct_symb)
-            $(node_call_fields...)
-        end
-        # constructor
-        $(mem_struct_symb)() =
-            $(mem_struct_symb)(0.0, $(store_struct_symb)(), $(node_call_inits...))
+    @gensym ret
+    return quote
+        $(ret) = $(new_body)
+        return $(@__MODULE__).@protect ($(stored_variables_ret), $(llsymb), $(ret))
     end
-
-    struct_defs = quote
-        $(full_store_struct_def)
-        $(mem_struct_def)
-    end
-
-    # copy code to be called after the end of func
-    # make sure it uses our version of deepcopy, and not the one of our user
-    copy_code = @chain quote
-        $(state_symb).store
-    end begin
-        quote
-            $(@__MODULE__).deepcopy($(_))
-        end
-        quote
-            $(state_symb).store = $(_)
-        end
-    end
-
-    # Build reset code
-    node_call_resets = [:($(state_symb).$(id) = $(type)()) for (id, type) in node_calls]
-    reset_code = quote
-        $(state_symb).store = $(store_struct_symb)()
-        $(node_call_resets...)
-    end
-
-    return mem_struct_symb, struct_defs, copy_code, reset_code
 end
 
 """
@@ -296,78 +220,76 @@ function node_build(splitted)
     node_name = splitted[:name]
     body = splitted[:body]
 
-    state_symb = gensym()
-    store_symb = gensym()
-    assign_store = quote
-        $(store_symb) = $(state_symb).store
-    end
+    rtype = get(splitted, :type, :Any)
+    new_rtype = :(Tuple{NamedTuple,Float64,$(rtype)})
+    splitted[:rtype] = new_rtype
+
+    @gensym state_symb
 
     # sampling context, as defined in tracked_rv.jl
-    ctx_symb = gensym()
+    @gensym ctx_symb
+
+    # loglikelihood
+    @gensym ll_symb
+    init_ll = :($(ll_symb)::Float64 = 0.0)
 
     # common pass
-    inner_reset_symb = gensym()
-    stored_vars, (node_calls, new_body) = @chain body begin
-        push_front(assign_store, _)
-        treat_observe_calls(state_symb, _)
+    @gensym inner_reset_symb
+    stored_vars, new_body = @chain body begin
+        push_front(init_ll, _)
+        treat_observe_calls
         treat_rand_calls(ctx_symb, _)
-        collect_stored_variables(store_symb, inner_reset_symb, _)
-        _[1], treat_node_calls(state_symb, inner_reset_symb, ctx_symb, _[2])
+        treat_node_calls(ctx_symb, _)
+        treat_loglikelihood_updates(ll_symb, _)
+        collect_stored_variables(state_symb, inner_reset_symb, _)
     end
-
-    # create structs
-    struct_symb, structs_def, copy_code, reset_code =
-        create_structs(node_name, state_symb, stored_vars, node_calls)
 
     # not reset pass
     no_reset_body = @chain new_body begin
-        fetch_stored_variables(store_symb, false, _)
+        fetch_stored_variables(state_symb, false, _)
+        augment_returns(stored_vars, ll_symb, _)
         treat_initialized_vars(false, _)
-        store_stored_variables(state_symb, store_symb, stored_vars, _)
         push_front(:($(inner_reset_symb) = false), _)
         push_front(:($(@__MODULE__).node_no_reset_marker()), _)
     end
 
     # reset pass
     reset_body = @chain new_body begin
-        fetch_stored_variables(store_symb, true, _)
+        fetch_stored_variables(state_symb, true, _)
+        augment_returns(stored_vars, ll_symb, _)
         treat_initialized_vars(true, _)
-        push_front(reset_code, _)
-        store_stored_variables(state_symb, store_symb, stored_vars, _)
         push_front(:($(inner_reset_symb) = true), _)
         push_front(:($(@__MODULE__).node_reset_marker()), _)
     end
 
     # Create inner functions
     name = splitted[:name]
-    insert!(splitted[:args], 1, :($(state_symb)::$(struct_symb)))
-    insert!(splitted[:args], 2, :($(ctx_symb)::$(@__MODULE__).SamplingCtx))
+    insert!(splitted[:args], 1, :($(ctx_symb)::$(@__MODULE__).SamplingCtx))
 
-    no_reset_inner_name = gensym()
-    reset_inner_name = gensym()
-
-    # Create no_reset function
-    splitted[:body] = no_reset_body
-    splitted[:name] = no_reset_inner_name
-    no_reset_inner_func = combinedef(splitted)
+    @gensym no_reset_inner_name reset_inner_name
 
     # Create reset function
     splitted[:body] = reset_body
     splitted[:name] = reset_inner_name
     reset_inner_func = combinedef(splitted)
 
+    # Create no_reset function
+    splitted[:body] = no_reset_body
+    splitted[:name] = no_reset_inner_name
+    insert!(splitted[:args], 1, :($(state_symb)))
+    no_reset_inner_func = combinedef(splitted)
+
     # Create inner function calls
     # Remove type annotation in arg
     splitted[:args][1] = :($(state_symb))
     splitted[:args][2] = ctx_symb
 
-    tmp = gensym()
-    outer_reset_symb = gensym()
+    @gensym tmp outer_reset_symb
     inner_func_call = quote
         $(tmp) = if $(outer_reset_symb)
             $(@__MODULE__).irpass(
                 $(reset_inner_name),
-                $(splitted[:args]...);
+                $(splitted[:args][2:end]...);
                 $(splitted[:kwargs]...),
             )
         else
@@ -379,29 +301,20 @@ function node_build(splitted)
         end
     end
 
-    # Reset score
-    reinit_score = quote
-        $(state_symb).loglikelihood = 0.0
-    end
-
     # Create wrapper func
     outer_body = quote
         # mark as node for later passes
         $(@__MODULE__).node_marker()
-        $(reinit_score)
         $(inner_func_call)
-        $(copy_code)
         $(tmp)
     end
     splitted[:body] = outer_body
     splitted[:name] = name
-    splitted[:args][1] = :($(state_symb)::$(struct_symb))
     splitted[:args][2] = :($(ctx_symb)::$(@__MODULE__).SamplingCtx)
     insert!(splitted[:args], 2, :($(outer_reset_symb)::Bool))
     outer_func = combinedef(splitted)
 
     code = esc(quote
-        $(structs_def)
         $(no_reset_inner_func)
         $(reset_inner_func)
         # Redirect documentation of @node definitions

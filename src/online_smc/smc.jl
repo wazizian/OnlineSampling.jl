@@ -26,13 +26,13 @@ end
     Sample next state
 """
 # TODO: use rng here
-function sample_next!(
+function sample_next(
     ::Random.AbstractRNG,
     proposal!::F,
     chosen_particles,
     args::Vararg{Any,N},
 ) where {F<:Function,N}
-    for p in chosen_particles
+    return map(chosen_particles) do p
         proposal!(p, args...)
     end
 end
@@ -52,7 +52,7 @@ function smc_step(
     adaptativeresampler::ResampleWithESSThreshold = ResampleWithESSThreshold(),
 ) where {F<:Function,N}
     hat_weights, chosen_particles = resample(rng, adaptativeresampler, cloud)
-    sample_next!(rng, proposal!, chosen_particles, args...)
-    new_weights = next_weights(hat_weights, chosen_particles)
-    return Cloud(new_weights, chosen_particles)
+    new_particles = sample_next(rng, proposal!, chosen_particles, args...)
+    new_weights = next_weights(hat_weights, new_particles)
+    return Cloud(new_weights, new_particles)
 end

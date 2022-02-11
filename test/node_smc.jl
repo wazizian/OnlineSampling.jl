@@ -1,5 +1,4 @@
 @testset "smc counter" begin
-    _reset_node_mem_struct_types()
     @node function counter()
         @init x = 0
         x = @prev(x) + 1
@@ -17,7 +16,6 @@
 end
 
 @testset "gaussian hmm" begin
-    _reset_node_mem_struct_types()
     Σ = ScalMat(1, 1.0)
     @node function model()
         @init x = rand(MvNormal([0.0], Σ))

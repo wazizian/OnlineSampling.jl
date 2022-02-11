@@ -41,7 +41,7 @@ should_instrument(ir::IR) = !is_node(ir)
 irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
 
 @dynamo function irpass(ftype, argtypes...)
-    # @show (ftype, argtypes...)
+    # @show (ftype, argtypes)
     isapplicable = ftypehasmethod(ftype, argtypes...)
     if isapplicable
         # best case, continue
@@ -50,7 +50,7 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
         if is_reset_node(ir)
             ir = propagate_notinits!(ir)
         end
-        if typeallowstracked(ftype) || any(typeallowstracked, argtypes)
+        if is_any_node(ir) || typeallowstracked(ftype) || any(typeallowstracked, argtypes)
             recurse!(ir)
         end
         return ir

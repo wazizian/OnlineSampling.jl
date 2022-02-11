@@ -14,7 +14,6 @@
 end
 
 @testset "dummy obs" begin
-    _reset_node_mem_struct_types()
     @node function f(obs)
         y = rand(Normal())
         @observe y obs
@@ -30,7 +29,6 @@ end
 end
 
 @testset "passed obs" begin
-    _reset_node_mem_struct_types()
     @node function f()
         y = rand(Normal())
         return y
@@ -51,7 +49,6 @@ end
 end
 
 @testset "invalid obs" begin
-    _reset_node_mem_struct_types()
     @node function f(obs)
         y = rand(Normal())
         @observe (y * y) obs
@@ -62,7 +59,6 @@ end
 end
 
 @testset "invalid obs (curr lim)" begin
-    _reset_node_mem_struct_types()
     g(y::AbstractFloat) = y
     @node function f(obs)
         y = rand(Normal())
@@ -74,7 +70,6 @@ end
 end
 
 @testset "bypass node signature (curr lim)" begin
-    _reset_node_mem_struct_types()
     @node g(y::AbstractFloat) = y
     @node function f(obs)
         y = rand(Normal())
@@ -86,7 +81,6 @@ end
 end
 
 @testset "notinit with unsupported obs" begin
-    _reset_node_mem_struct_types()
     function g(x::AbstractFloat, y)
         return x * y
     end

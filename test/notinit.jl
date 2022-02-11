@@ -1,5 +1,4 @@
 @testset "notinit edge cases" begin
-    _reset_node_mem_struct_types()
     ip = OnlineSampling.irpass
     reset_println(args...) = (OnlineSampling.node_no_reset_marker(); println(args...))
     ip(reset_println, OnlineSampling.notinit)
@@ -19,7 +18,11 @@
     ip(
         reset_println,
         OnlineSMC.Cloud{
-            OnlineSampling.Particle{OnlineSampling.NotInit,OnlineSampling.DSOffCtx},
+            OnlineSampling.Particle{
+                OnlineSampling.NotInit,
+                OnlineSampling.DSOffCtx,
+                OnlineSampling.NotInit,
+            },
         }(
             2,
         ),

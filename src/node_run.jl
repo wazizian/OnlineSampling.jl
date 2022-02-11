@@ -1,7 +1,3 @@
-function build_call(f, args...)
-    return :($(f)($(args...)))
-end
-
 function node_run(macro_args...)
     #TODO: handle iterable input, save output...
     call = macro_args[end]
@@ -13,40 +9,35 @@ function node_run(macro_args...)
         @capture(macro_arg, T = val_) && (n_iterations_expr = val; break)
     end
 
+    @gensym state_symb reset_symb ctx_symb
+
+    map!(esc, args, args)
+
+    init_call = :($(esc(f))(nothing, true, $(ctx_symb), $(args...)))
+    call = :($(esc(f))($(state_symb), false, $(ctx_symb), $(args...)))
+
+    body = quote
+        $(state_symb), _, _ = $(call)
+    end
+
     # Create main loop
     if isnothing(n_iterations_expr)
-        loop_creator = body -> quote
+        loop_code = quote
             while true
                 $(body)
             end
         end
     else
-        loop_creator = body -> quote
+        loop_code = quote
             for _ = 1:($(esc(n_iterations_expr))-1)
                 $(body)
             end
         end
     end
 
-    state_symb = gensym()
-    state_type_symb = get_node_mem_struct_type(f)
-    reset_symb = gensym()
-    ctx_symb = gensym()
-
-    map!(esc, args, args)
-    for arg in [ctx_symb, reset_symb, state_symb]
-        insert!(args, 1, arg)
-    end
-
-    func_call = build_call(esc(f), args...)
-    loop_code = loop_creator(func_call)
-
     code = quote
-        $(state_symb) = $(esc(state_type_symb))()
-        $(reset_symb) = true
         $(ctx_symb) = $(@__MODULE__).SamplingCtx()
-        $(func_call)
-        $(reset_symb) = false
+        $(state_symb), _, _ = $(init_call)
         $(loop_code)
     end
     return code
@@ -59,38 +50,27 @@ function node_run_ir(macro_args...)
     call = macro_args[end]
     @capture(call, f_(args__)) || error("Improper usage of @node_ir with $(call)")
 
-    irpass = :(true)
-    for macro_arg in macro_args
-        @capture(macro_arg, irpass = val_) && (irpass = val; break)
-    end
-
     full = :(false)
     for macro_arg in macro_args
         @capture(macro_arg, full = val_) && (full = val; break)
     end
 
-    state_symb = gensym()
-    state_type_symb = get_node_mem_struct_type(f)
+    @gensym state_symb
 
     map!(esc, args, args)
     insert!(args, 1, :($(@__MODULE__).SamplingCtx()))
-    insert!(args, 1, true)
-    insert!(args, 1, state_symb)
+    insert!(args, 1, :(true))
+    insert!(args, 1, :(nothing))
 
-    ir_func_call = build_call(esc(f), args...)
+    call = :($(esc(f))($(args...)))
     code = quote
-        $(state_symb) = $(esc(state_type_symb))()
-        if $(esc(irpass))
-            if $(esc(full))
-                println(@macroexpand $(ir_func_call))
-                println(@code_ir $(ir_func_call))
-                @code_llvm optimize = false raw = true $(ir_func_call)
-                @code_native $(ir_func_call)
-            else
-                @code_ir $(ir_func_call)
-            end
+        if $(esc(full))
+            println(@macroexpand $(call))
+            println(@code_ir $(call))
+            @code_llvm optimize = false raw = true $(call)
+            @code_native $(call)
         else
-            @code_ir $(esc(f))($(args...))
+            @code_ir $(call)
         end
     end
     return code

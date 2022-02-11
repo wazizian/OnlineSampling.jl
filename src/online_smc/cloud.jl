@@ -26,9 +26,9 @@ Cloud(particles::P) where {T,P<:AbstractVector{T}} =
 """
     Convenience constructor for Cloud
 """
-# TODO (impr): use static arrays for speed
 function Cloud{T}(nparticles::Int) where {T}
     particles = Vector{T}(undef, nparticles)
+    # TODO (impr): remove this loop
     for i = 1:nparticles
         particles[i] = T()
     end

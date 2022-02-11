@@ -1,4 +1,11 @@
 """
+    Determine if there exists an index `ì` of `a` such that `pred(a[i], a[i+1])` is true.
+"""
+function anytwo(pred, a)
+    return any(tpl -> pred(tpl[1], tpl[2]), zip(a[1:end-1], a[2:end]))
+end
+
+"""
     Determines if a function is a node or not,
     by detecting the special node_marker() call
 """
@@ -9,9 +16,11 @@ function is_node(ir::IR; markers = (:node_marker,))
     # TODO (impr): stop the walk when a marker is found (ie adapt stopwalk to ir)
     postwalk(ir) do ex
         if isexpr(ex, :call)
-            index = findfirst(arg -> (arg isa QuoteNode) && (arg.value in markers), ex.args)
-            ((index == nothing) || (index == 1)) && return ex
-            isn |= ex.args[index-1] == @__MODULE__
+            isn |= anytwo(
+                (mod, name) ->
+                    (mod == @__MODULE__) && (name isa QuoteNode) && (name.value in markers),
+                ex.args,
+            )
         elseif isexpr(ex, GlobalRef)
             isn |= (ex.mod == @__MODULE__) && (ex.name in markers)
         end
@@ -21,6 +30,8 @@ function is_node(ir::IR; markers = (:node_marker,))
 end
 
 is_reset_node(ir) = is_node(ir; markers = (:node_reset_marker,))
+is_any_node(ir) =
+    is_node(ir; markers = (:node_marker, :node_reset_marker, :node_no_reset_marker))
 
 """
     Determines if the function f whose type is ftype has a method

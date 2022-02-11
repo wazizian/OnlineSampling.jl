@@ -53,3 +53,14 @@ end
     ir = OnlineSampling.propagate_notinits!(ir)
     @test IRTools.evalir(ir, nothing) == 0
 end
+
+@testset "protected" begin
+    function f()
+        y = OnlineSampling.notinit
+        x = 0
+        return OnlineSampling.@protect (x, y)
+    end
+    ir = @code_ir f()
+    ir = OnlineSampling.propagate_notinits!(ir)
+    @test IRTools.evalir(ir, nothing) == (0, OnlineSampling.notinit)
+end
