@@ -43,14 +43,6 @@ end
         Tuple{OnlineSampling.NotInit,Int},
     )
 
-    @test !OnlineSampling.typeforces(
-        OnlineSampling.NotInit,
-        Union{OnlineSampling.NotInit,Int},
-    )
-    @test OnlineSampling.typeforces(OnlineSampling.NotInit, OnlineSampling.NotInit)
-    @test !OnlineSampling.typeforces(OnlineSampling.NotInit, Vector{Any})
-    @test OnlineSampling.typeforces(OnlineSampling.NotInit, Vector{OnlineSampling.NotInit})
-
     struct A
         x::Int
     end
@@ -62,13 +54,6 @@ end
     end
     @test !OnlineSampling.typeallows(OnlineSampling.NotInit, A)
     @test OnlineSampling.typeallows(OnlineSampling.NotInit, B)
-    @test !OnlineSampling.typeforces(OnlineSampling.NotInit, B)
-    @test OnlineSampling.typeforces(OnlineSampling.NotInit, C)
-
-    @test OnlineSampling.hasnotinit((OnlineSampling.notinit, 1))
-    @test !OnlineSampling.hasnotinit([1])
-    @test OnlineSampling.hasnotinit(B(OnlineSampling.notinit))
-    @test OnlineSampling.hasnotinit([1, OnlineSampling.notinit])
 end
 
 @testset "node marker" begin
