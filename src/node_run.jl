@@ -9,7 +9,7 @@ function node_run(macro_args...)
         @capture(macro_arg, T = val_) && (n_iterations_expr = val; break)
     end
 
-    @gensym state_symb reset_symb ctx_symb
+    @gensym state_symb reset_symb ctx_symb ret_symb
 
     map!(esc, args, args)
 
@@ -29,7 +29,7 @@ function node_run(macro_args...)
         end
     else
         loop_code = quote
-            for _ = 1:($(esc(n_iterations_expr))-1)
+            for _ = 1:($(esc(n_iterations_expr))-2)
                 $(body)
             end
         end
@@ -39,6 +39,8 @@ function node_run(macro_args...)
         $(ctx_symb) = $(@__MODULE__).SamplingCtx()
         $(state_symb), _, _ = $(init_call)
         $(loop_code)
+        _, _, $(ret_symb) = $(call)
+        $(ret_symb)
     end
     return code
 end

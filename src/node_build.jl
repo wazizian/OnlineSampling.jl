@@ -100,11 +100,7 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
         reset_cond = dsval = :(false)
         for marg in margs
             if @capture(marg, particles = val_)
-                try
-                    node_particles = eval(val)::Integer
-                catch
-                    error("Particle number $(val) should be an integer constant")
-                end
+                node_particles = val
             elseif @capture(marg, DS = val_)
                 dsval = val
             else
@@ -112,7 +108,8 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
             end
         end
 
-        if node_particles > 0
+        if node_particles != 0
+            @gensym ret
             return quote
                 # TODO (feat): use expectation over cloud as likelihood
                 # For this, add a method to OnlineSMC.likelihood for the store of smc (whose type is det)
@@ -121,12 +118,13 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here
                     # guarantees that this node_call will be treated at the next iteration
-                    @node $(reset_cond) $(@__MODULE__).smc(
+                    $(ret) = @node $(reset_cond) $(@__MODULE__).smc(
                         $(node_particles),
                         $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).DSOffCtx,
                         $(f),
                         $(args...),
                     )
+                    $(@__MODULE__).unwrap_tracked_value($(ret))
                 end
             end
         end
