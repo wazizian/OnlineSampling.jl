@@ -9,10 +9,7 @@
 abstract type AbstractTrackedObservation{T,F,S,D<:Distribution{F,S}} end
 
 # Interface
-function internal_observe(
-    ::AbstractTrackedObservation{T,F,S,D},
-    ::T,
-)::Float64 where {T,F,S,D} end
+function internal_observe(::AbstractTrackedObservation, ::Any)::Float64 end
 function value(::AbstractTrackedObservation{T,F,S,D})::T where {T,F,S,D} end
 
 """
@@ -24,18 +21,29 @@ struct TrackedObservation{T,F,S,D<:Distribution{F,S}} <: AbstractTrackedObservat
 end
 
 # Satisfy interface 
-internal_observe(y::TrackedObservation{T}, obs::T) where {T} =
-    Distributions.loglikelihood(y.d, obs)
+internal_observe(y::TrackedObservation, obs) = Distributions.loglikelihood(y.d, obs)
 value(y::TrackedObservation) = y.val
 
 """
     Exception raised by [internal_observe](@ref) when it encounters an observation
     that is not tracked
 """
-struct UntrackedObservation <: Exception end
+struct UntrackedObservation <: Exception
+    val::Any
+    obs::Any
+end
+
+function Base.showerror(io::IO, e::UntrackedObservation)
+    msg = """
+          Invalid observe statement.
+          Observed distribution: $(e.val)::$(typeof(e.val))
+          Observation: $(e.obs)::$(typeof(e.obs))
+          """
+    print(io, msg)
+end
 
 function internal_observe(val, obs)
-    throw(UntrackedObservation())
+    throw(UntrackedObservation(val, obs))
 end
 
 unwrap_tracked_type(U::DataType) = unwrap_type(AbstractTrackedObservation, U)

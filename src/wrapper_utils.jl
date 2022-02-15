@@ -5,7 +5,7 @@
 """
 function typeallows(s::Type, @nospecialize t::Type)
     ((s <: t) || (t <: s)) && return true
-    isprimitivetype(t) && return false
+    (isprimitivetype(t) || t == DataType) && return false
     (t <: AbstractArray) && return typeallows(s, eltype(t))
     hasproperty(t, :types) && return any(u -> typeallows(s, u), t.types)
     return true
@@ -18,7 +18,7 @@ end
 """
 function typeforces(s::Type, @nospecialize t::Type)
     (t <: s) && return true
-    isprimitivetype(t) && return false
+    (isprimitivetype(t) || t == DataType) && return false
     (t <: AbstractArray) && return typeforces(s, eltype(t))
     hasproperty(t, :types) && return any(u -> typeforces(s, u), t.types)
     return false
@@ -70,7 +70,6 @@ unwrap_type(::Type, U::Any) = U
 """
 function unwrap_value(w::Type{W}, x) where {W}
     typeallows(W, typeof(x)) || return x
-    @show(w, x)
     # using Accessors
     # https://juliaobjects.github.io/Accessors.jl/stable/docstrings/#Accessors.Properties
     return modify(y -> unwrap_value(W, y), x, Properties())

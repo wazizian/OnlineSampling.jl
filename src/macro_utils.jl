@@ -9,7 +9,7 @@ end
     Debug pretty-printer (using MacroTools)
 """
 function shh(body)
-    println(postwalk(rmlines, body))
+    println(postwalk(MacroTools.rmlines ∘ MacroTools.unblock ∘ MacroTools.flatten, body))
 end
 
 """

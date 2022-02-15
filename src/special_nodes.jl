@@ -11,11 +11,21 @@
 end
 
 """
+    Determine how an observation sequence should be iterated
+    - If `obs::Vector{T}`, yield elements of type `T`
+    - If `obs::Array{T,N}` with `N ≥ 2`, yield slices along the first dimension.
+    - Otherwise, iterate over `obs`.
+"""
+@node iterate_obs(obs::AbstractVector) = @node iterate(obs)
+@node iterate_obs(obs::AbstractArray) = @node iterate(eachslice(obs; dims = 1))
+@node iterate_obs(obs) = @node iterate(obs)
+
+"""
     Pre-defined node which replace [@observe](@ref) calls
     Calls [internal_observe](@ref)
 """
 @node function observe(var, obs)
-    current_obs = @node iterate(obs)
+    current_obs = @node iterate_obs(obs)
     ll = internal_observe(var, current_obs)
     OnlineSampling.internal_update_loglikelihood(ll)
 end

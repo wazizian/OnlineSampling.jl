@@ -33,5 +33,8 @@ end
     end
 
     obs = Vector{Float64}(1:5)
-    @test_broken (@node T = 5 main(obs))
+    obs = reshape(obs, (5, 1))
+    @assert size(obs) == (5, 1)
+
+    @node T = 5 main(obs)
 end

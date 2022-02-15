@@ -196,10 +196,12 @@ end
 """
 function augment_returns(stored_vars::Set{Symbol}, llsymb::Symbol, body::Expr)
     stored_variables_ret = gather_stored_variables(stored_vars)
+    @gensym retval
     new_body = postwalk(body) do ex
         @capture(ex, return ret_) || return ex
         return quote
-            return $(@__MODULE__).@protect ($(stored_variables_ret), $(llsymb), $(ret))
+            $(retval) = $(ret)
+            return $(@__MODULE__).@protect ($(stored_variables_ret), $(llsymb), $(retval))
         end
     end
     @gensym ret
@@ -321,6 +323,6 @@ function node_build(splitted)
         Core.@__doc__($(outer_func))
     end)
     # sh(code)
-    # println(postwalk(rmlines, code))
+    # shh(code)
     return code
 end

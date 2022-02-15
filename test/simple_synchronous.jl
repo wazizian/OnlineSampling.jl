@@ -138,3 +138,22 @@ end
     # non-reset iterations
     @test arr == [0]
 end
+
+@testset "return node" begin
+    @node function counter()
+        @init x = 1
+        x = @prev(x) + 1
+        return x
+    end
+    @node function g()
+        return @node counter()
+    end
+    @node function f(arr)
+        x = @node g()
+        push!(arr, x)
+    end
+
+    arr = []
+    @node T = 5 f(arr)
+    @test arr == collect(1:5)
+end

@@ -7,7 +7,7 @@ function resample(
     cloud::Cloud,
 )
     if ess(cloud) < adaptativeresampler.threshold * length(cloud)
-        chosen_indices = adaptativeresampler.resampler(rng, cloud.weights)
+        chosen_indices = adaptativeresampler.resampler(rng, normalized_weights(cloud))
         chosen_particles = map(chosen_indices) do i
             # TODO (impr): to avoid the copies here, allow to run a node with a source and 
             # target state
