@@ -90,13 +90,32 @@ function treat_initialized_vars(reset::Bool, body::Expr)::Expr
 end
 
 """
+    Build a call to the SMC as a node call
+"""
+function build_smc_call(marg, node_particles, dsval, f, args...)
+    return quote
+        # TODO (feat): use expectation over cloud as likelihood
+        # For this, add a method to OnlineSMC.likelihood for the store of smc (whose type is det)
+        # TODO (impr): the context used at toplevel and inside SMCs are disjoint
+        # how can we remedy this ?
+        @node $(marg) $(@__MODULE__).smc(
+            $(node_particles),
+            $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).DSOffCtx,
+            $(f),
+            $(args...),
+        )
+    end
+end
+
+
+"""
     Handle `@node` calls.
     Must be called before the init, stored variables and loglikelihood passes
 """
 function treat_node_calls(ctxsymb::Symbol, body::Expr)
     return prewalk(body) do ex
         @capture(ex, @node margs__ f_(args__)) || return ex
-        node_particles = 0
+        node_particles = :(0)
         reset_cond = dsval = :(false)
         for marg in margs
             if @capture(marg, particles = val_)
@@ -108,23 +127,13 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
             end
         end
 
-        if node_particles != 0
-            @gensym ret
+        if node_particles != :(0)
+            smc_call = build_smc_call(reset_cond, node_particles, dsval, f, args...)
             return quote
-                # TODO (feat): use expectation over cloud as likelihood
-                # For this, add a method to OnlineSMC.likelihood for the store of smc (whose type is det)
-                # TODO (impr): the context used at toplevel and inside SMCs are disjoint
-                # how can we remedy this ?
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here
                     # guarantees that this node_call will be treated at the next iteration
-                    $(ret) = @node $(reset_cond) $(@__MODULE__).smc(
-                        $(node_particles),
-                        $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).DSOffCtx,
-                        $(f),
-                        $(args...),
-                    )
-                    $(@__MODULE__).unwrap_tracked_value($(ret))
+                    $(smc_call)
                 end
             end
         end

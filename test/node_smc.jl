@@ -55,15 +55,12 @@ end
         @observe(y, obs)
         return x
     end
-    @node function main(obs)
-        x = @node particles = N hmm(obs)
-    end
 
     obs = Vector{Float64}(1:5)
     obs = reshape(obs, (5, 1))
     @assert size(obs) == (5, 1)
 
-    node_cloud = @node T = 5 main(obs)
+    node_cloud = @node T = 5 particles = N hmm(obs)
     node_samples = dropdims(rand(node_cloud, Nsamples); dims = 1)
 
     function proposal(p::MvParticle, o)
