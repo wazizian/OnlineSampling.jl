@@ -32,3 +32,13 @@ function smc_node_step(
 ) where {F<:Function,P<:Particle}
     return SMC.smc_step(proposal, cloud, step, reset, args...)
 end
+
+"""
+    Sanitize cloud for return
+"""
+function sanitize_return(cloud::Cloud{P}) where {P<:Particle}
+    new_particles = map(cloud.particles) do p
+        return @set p.retvalue = unwrap_soft_tracked_value(p.retvalue)
+    end
+    return @set cloud.particles = new_particles
+end

@@ -30,15 +30,17 @@ struct Realized{I<:Integer,F,S,A<:AbstractArray,CD<:ConditionalDistribution{F,S}
     val::A
 end
 
-const UnionNode = Union{Initialized,Marginalized,Realized}
-
 mutable struct GraphicalModel{I<:Integer}
-    nodes::Vector{UnionNode}
+    nodes::Vector{AbstractNode}
     last_id::I
 end
 
 function GraphicalModel(::Type{I}) where {I<:Integer}
-    GraphicalModel{I}(Vector{UnionNode}(), convert(I, 0))
+    GraphicalModel{I}(Vector{AbstractNode}(), convert(I, 0))
+end
+
+function GraphicalModel(nodes::Vector{T}, last_id::I) where {T<:AbstractNode,I<:Integer}
+    GraphicalModel{I}(Vector{AbstractNode}(nodes), last_id)
 end
 
 # Initial constructors

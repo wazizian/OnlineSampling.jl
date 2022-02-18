@@ -11,6 +11,10 @@ abstract type AbstractTrackedObservation{T,F,S,D<:Distribution{F,S}} end
 # Interface
 function internal_observe(::AbstractTrackedObservation, ::Any)::Float64 end
 function value(::AbstractTrackedObservation{T,F,S,D})::T where {T,F,S,D} end
+# Alternative value function which might be overriden
+function soft_value(obs::AbstractTrackedObservation{T,F,S,D})::T where {T,F,S,D}
+    return value(obs)
+end
 
 """
     Concrete tracked observation structure
@@ -48,5 +52,7 @@ end
 
 unwrap_tracked_type(U::DataType) = unwrap_type(AbstractTrackedObservation, U)
 unwrap_tracked_value(x) = unwrap_value(AbstractTrackedObservation, x)
+unwrap_soft_tracked_value(x) =
+    unwrap_value(AbstractTrackedObservation, x; value = soft_value)
 
 typeallowstracked(t) = typeallows(AbstractTrackedObservation, t)

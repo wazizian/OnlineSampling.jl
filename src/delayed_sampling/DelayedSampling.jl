@@ -13,6 +13,6 @@ include("linear_gaussian_cd.jl")
 include("primitives.jl")
 include("ops.jl")
 
-export GraphicalModel, initialize!, value!, observe!, dist!, jointdist!, CdMvNormal
+export GraphicalModel, initialize!, value!, observe!, dist!, rand!, jointdist!, CdMvNormal
 
 end

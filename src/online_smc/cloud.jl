@@ -10,7 +10,10 @@ struct Cloud{T,W<:AbstractVector{Float64},P<:AbstractVector{T}}
     particles::P
 end
 
-function value(_) end
+"""
+    Default value implementation
+"""
+value(p) = p
 
 """
     Default convenience loglikelihood implementation
@@ -81,3 +84,17 @@ function ess(normalized_weights::AbstractVector{Float64})
     return 1 ./ sum(normalized_weights .^ 2)
 end
 ess(cloud::Cloud) = (ess ∘ normalized_weights)(cloud)
+
+"""
+    Dummy particle
+"""
+struct DummyParticle{T}
+    val::T
+end
+value(p::DummyParticle{T}) where {T} = p.val
+loglikelihood(::DummyParticle) = 0.0
+
+
+"""
+    Map over particules
+"""

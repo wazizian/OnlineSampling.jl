@@ -69,12 +69,12 @@ end
     y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
     @test is_inv_sat(gm)
 
-    samples = [value!(gm, y)[1] for _ = 1:100]
+    samples = [rand!(gm, y)[1] for _ = 1:100]
     @test is_inv_sat(gm)
 
     test = OneSampleADTest(samples, Normal(1.0, sqrt(11.0)))
     # Broken for now because repeated sampling is not correctly implemented yet
-    @test_broken pvalue(test) > 0.05
+    @test pvalue(test) > 0.05
 end
 
 @testset "Observe with 3 children" begin

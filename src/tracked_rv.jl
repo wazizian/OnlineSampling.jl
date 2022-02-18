@@ -9,7 +9,7 @@ struct DSOffCtx <: SamplingCtx end
 struct DSOnCtx <: SamplingCtx
     gm::DS.GraphicalModel
 end
-DsOnCtx() = DSOnCtx(DS.GraphicalModel(Int64))
+DSOnCtx() = DSOnCtx(DS.GraphicalModel(Int64))
 
 SamplingCtx() = DSOffCtx()
 
@@ -46,6 +46,26 @@ struct LinearTracker{
     linear::Linear
     offset::T
 end
+
+"""
+    Instantiate a linear tracker
+"""
+# Note that d is only used for its type and dimensions
+function LinearTracker(
+    gm::DS.GraphicalModel,
+    id::Int64,
+    template_d::Distribution{Multivariate,Continuous},
+)
+    dim = Base.size(template_d)[1]
+    elt = Base.eltype(template_d)
+    offset = zeros(elt, dim)
+    linear = Matrix{elt}(I, dim, dim)
+    T = typeof(offset)
+    Linear = typeof(linear)
+    D = typeof(template_d)
+    return LinearTracker{T,Linear,D}(gm, id, linear, offset)
+end
+
 # Overloads
 Base.:+(lt::LinearTracker, v::AbstractVector) = (@set lt.offset = lt.offset + v)
 Base.:+(v::AbstractVector, lt::LinearTracker) = lt + v
@@ -55,9 +75,10 @@ Base.:*(A::AbstractMatrix, lt::LinearTracker) = @chain lt begin
 end
 
 # TrackedObservation interface
-value(lt::LinearTracker) = linear * DS.value!(lt.gm, lt.id) + offset
-internal_observe(lt::LinearTracker{T}, obs::T) where {T<:AbstractVector} =
-    DS.observe!(lt.gm, lt.id, linear \ (obs - offset))
+value(lt::LinearTracker) = lt.linear * DS.value!(lt.gm, lt.id) + lt.offset
+soft_value(lt::LinearTracker) = lt.linear * DS.rand!(lt.gm, lt.id) + lt.offset
+internal_observe(lt::LinearTracker, obs) =
+    DS.observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
 
 """
    Determine if a r.v. should be a tracked, and by which tracker,
@@ -65,10 +86,10 @@ internal_observe(lt::LinearTracker{T}, obs::T) where {T<:AbstractVector} =
 """
 track_rv(::DS.GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
 track_rv(gm::DS.GraphicalModel, d::AbstractMvNormal) =
-    LinearTracker{AbstractVector,AbstractMatrix,typeof(d)}(gm, DS.initialize!(gm, d))
+    LinearTracker(gm, DS.initialize!(gm, d), d)
 # TODO (api impr): clean the two following lines
 track_rv(gm::DS.GraphicalModel, t::Tuple{DS.CdMvNormal,Int64}) =
-    LinearTracker(gm, DS.initialize!(gm, t...))
+    LinearTracker(gm, DS.initialize!(gm, t...), t[1]())
 
 """
     Compute the conditional MvNormal distribution from a LinearTracker

@@ -112,6 +112,16 @@ function dist!(gm::GraphicalModel, node::Marginalized)
     end
 end
 
+function rand!(gm::GraphicalModel, node::Initialized)
+    @chain node begin
+        dist!(gm, _)
+        rand!(gm, _)
+    end
+end
+
+rand!(::GraphicalModel, node::Marginalized) = (node, rand(node.d))
+rand!(::GraphicalModel, node::Realized) = (node, node.val)
+
 function retract!(gm::GraphicalModel, node::Marginalized)
     # Does not renew node
     if isnothing(node.marginalized_child)
@@ -145,6 +155,7 @@ function initialize!(gm::GraphicalModel{I}, d::Distribution) where {I}
     id = new_id(gm)
     node = Marginalized(id, d)
     set!(gm, node)
+    @debug "Initialize $node"
     return id
 end
 
@@ -158,20 +169,30 @@ function initialize!(
     parent_child_ref = push!(parent.children, id)
     node = Initialized(id, parent_id, parent_child_ref, cd)
     set!(gm, node)
+    @debug "Initialize $node"
     return id
 end
 
 function value!(gm::GraphicalModel{I}, id::I) where {I}
+    @debug "Value $(gm.nodes[id])"
     _, val = value!(gm, gm.nodes[id])
     return val
 end
 
+function rand!(gm::GraphicalModel{I}, id::I) where {I}
+    _, val = rand!(gm, gm.nodes[id])
+    @debug "Rand $(gm.nodes[id]) with value $val"
+    return val
+end
+
 function observe!(gm::GraphicalModel{I}, id::I, value::AbstractArray) where {I}
+    @debug "Observe $(gm.nodes[id]) with value $value"
     _, ll = observe!(gm, gm.nodes[id], value)
     return ll
 end
 
 function dist!(gm::GraphicalModel{I}, id::I) where {I}
+    @debug "Dist $(gm.nodes[id])"
     node = dist!(gm, gm.nodes[id])
     return node.d
 end

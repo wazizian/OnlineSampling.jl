@@ -7,7 +7,7 @@ function typeallows(s::Type, @nospecialize t::Type)
     ((s <: t) || (t <: s)) && return true
     (isprimitivetype(t) || t == DataType) && return false
     (t <: AbstractArray) && return typeallows(s, eltype(t))
-    hasproperty(t, :types) && return any(u -> typeallows(s, u), t.types)
+    hasproperty(t, :types) && return any(u -> (u != t) && typeallows(s, u), t.types)
     return true
 end
 
@@ -25,19 +25,20 @@ unwrap_type(::Type, U::Any) = U
 """
     Given a type `W` which wraps values of type `T` as `W{T}`,
     and which has a method `value(::W{T})::T`, recursively apply
-    `value` to the input
+    `value` to the input.
 """
-function unwrap_value(w::Type{W}, x) where {W}
+function unwrap_value(w::Type{W}, x; value = value) where {W}
+    @show (w, x, typeof(x))
     typeallows(W, typeof(x)) || return x
     # using Accessors
     # https://juliaobjects.github.io/Accessors.jl/stable/docstrings/#Accessors.Properties
-    return modify(y -> unwrap_value(W, y), x, Properties())
+    return modify(y -> unwrap_value(W, y, value = value), x, Properties())
 end
-function unwrap_value(::Type{W}, x::Union{Tuple,AbstractArray}) where {W}
+function unwrap_value(::Type{W}, x::Union{Tuple,AbstractArray}; value = value) where {W}
     typeallows(W, typeof(x)) || return x
     # using Accessors
     # https://juliaobjects.github.io/Accessors.jl/stable/docstrings/#Accessors.Elements()
-    return modify(y -> unwrap_value(W, y), x, Elements())
+    return modify(y -> unwrap_value(W, y, value = value), x, Elements())
 end
 
-unwrap_value(::Type{W}, x::W) where {W} = value(x)
+unwrap_value(::Type{W}, x::W; value = value) where {W} = value(x)

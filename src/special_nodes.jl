@@ -43,5 +43,5 @@ end
     @init void_cloud = SMC.Cloud{Particle{Nothing,C,Nothing}}(nparticles)
     @init cloud = smc_node_step(step, void_cloud, true, args...)
     cloud = smc_node_step(step, (@prev cloud), false, args...)
-    return unwrap_tracked_value(cloud)
+    return sanitize_return(cloud)
 end
