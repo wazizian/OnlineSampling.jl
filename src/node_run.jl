@@ -1,5 +1,21 @@
+struct NodeCall
+    f
+    ctx::OnlineSampling.SamplingCtx
+    len::Int
+end
+
+function Base.iterate(N::NodeCall, state=(nothing,1))
+    if state[2] > N.len
+        nothing
+    else
+        (new_state_arg,_,_) = N.f(state[1], isnothing(state[1]), N.ctx)
+        return (new_state_arg..., (new_state_arg,state[2]+1))
+    end
+end
+
 function node_run(macro_args...)
     #TODO: handle iterable input, save output...
+    println(macro_args)
     call = macro_args[end]
     @capture(call, f_(args__)) || error("Improper usage of @node with $(call)")
 
@@ -7,16 +23,22 @@ function node_run(macro_args...)
     n_iterations_expr = nothing
     node_particles = :(0)
     dsval = :(false)
+    iterable = :(false)
     for macro_arg in macro_args
         @capture(macro_arg, T = val_) && (n_iterations_expr = val)
         @capture(macro_arg, particles = val_) && (node_particles = val)
         @capture(macro_arg, DS = val_) && (dsval = val)
+        @capture(macro_arg, iter = val_) && (iterable = val)
     end
 
     if node_particles != :(0)
         smc_call =
             build_smc_call(:(T = $(n_iterations_expr)), node_particles, dsval, f, args...)
         return esc(smc_call)
+    end
+
+    if iterable
+        return :(NodeCall($(esc(f)), $(@__MODULE__).SamplingCtx(), $(n_iterations_expr)))
     end
 
     @gensym state_symb reset_symb ctx_symb ret_symb
@@ -52,6 +74,7 @@ function node_run(macro_args...)
         _, _, $(ret_symb) = $(call)
         $(ret_symb)
     end
+    sh(code)
     return code
 end
 
