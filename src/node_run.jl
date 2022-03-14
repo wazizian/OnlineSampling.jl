@@ -81,7 +81,7 @@ function node_run(macro_args...)
             $(ret_symb)
         end
     end
-    sh(code)
+    # sh(code)
     return code
 end
 
