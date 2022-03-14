@@ -73,7 +73,7 @@ function node_run(macro_args...)
         _, _, $(ret_symb) = $(call)
         $(ret_symb)
     end
-    sh(code)
+    # sh(code)
     return code
 end
 
