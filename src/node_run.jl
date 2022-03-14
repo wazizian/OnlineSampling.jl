@@ -15,7 +15,6 @@ end
 
 function node_run(macro_args...)
     #TODO: handle iterable input, save output...
-    println(macro_args)
     call = macro_args[end]
     @capture(call, f_(args__)) || error("Improper usage of @node with $(call)")
 
