@@ -93,8 +93,3 @@ struct DummyParticle{T}
 end
 value(p::DummyParticle{T}) where {T} = p.val
 loglikelihood(::DummyParticle) = 0.0
-
-
-"""
-    Map over particules
-"""

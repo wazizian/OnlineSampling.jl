@@ -48,6 +48,13 @@ struct LinearTracker{
 end
 
 """
+    Pretty-printing of a linear tracker
+"""
+function Base.show(io::IO, lt::LinearTracker)
+    print(io, "node = $(lt.gm.nodes[lt.id]), linear = $(lt.linear), offset = $(lt.offset)")
+end
+
+"""
     Instantiate a linear tracker
 """
 # Note that d is only used for its type and dimensions

@@ -29,7 +29,7 @@ function condition(parent::MvNormal, child::CdMvNormal, child_val::AbstractArray
     child_d = child(parent)
     cor = parent.Σ * transpose(child.linear)
     new_cov = parent.Σ - X_invA_Xt(child_d.Σ, cor)
-    new_mean = parent.μ + cor * (child_d.Σ \ (child_val - child.μ))
+    new_mean = parent.μ + cor * (child_d.Σ \ (child_val - child_d.μ))
     return MvNormal(new_mean, new_cov)
 end
 
@@ -37,7 +37,7 @@ function condition_cd(parent::MvNormal, child::CdMvNormal)
     child_d = child(parent)
     cor = parent.Σ * transpose(child.linear)
     new_cov = parent.Σ - X_invA_Xt(child_d.Σ, cor)
-    new_mean = parent.μ - cor * (child_d.Σ \ child.μ)
+    new_mean = parent.μ - cor * (child_d.Σ \ child_d.μ)
     linear = transpose(child_d.Σ \ transpose(cor))
     return CdMvNormal(linear, new_mean, new_cov)
 end
@@ -48,4 +48,24 @@ function jointdist(parent::MvNormal, child::CdMvNormal)
     new_mean = cat(child_d.μ, parent.μ; dims = 1)
     new_cov = [child_d.Σ transpose(cor); cor parent.Σ]
     return MvNormal(new_mean, new_cov)
+end
+
+struct CdNormal{F<:AbstractFloat} <: ConditionalDistribution{Univariate,Continuous}
+    linear::F
+    μ::F
+    σ::F
+end
+
+(cd::CdNormal)() = Normal(cd.linear * cd.μ, σ)
+(cd::CdNormal)(parent::AbstractFloat) = Normal(cd.linear * parent + cd.μ, cd.σ)
+(cd::CdNormal)(parent::Normal) =
+    Normal(cd.linear * parent.μ + cd.μ, sqrt(cd.linear^2 * parent.σ^2 + cd.σ^2))
+
+function condition_cd(parent::Normal, child::CdNormal)
+    child_d = child(parent)
+    cor = parent.σ^2 * child.linear
+    new_cov = sqrt(parent.σ^2 - (cor / child_d.σ)^2)
+    new_linear = cor / (child_d.σ^2)
+    new_mean = parent.μ - new_linear * child_d.μ
+    return CdNormal(new_linear, new_mean, new_cov)
 end

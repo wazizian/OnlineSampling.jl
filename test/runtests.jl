@@ -24,6 +24,9 @@ include("custom_testset.jl")
 include(joinpath(testdir, "online_smc/utils.jl"))
 
 @testset TS exit_on_error = exit_on_error "OnlineSampling.jl" begin
+    @testset "cd gaussian" begin
+        include(joinpath(testdir, "delayed_sampling/cd_gaussian.jl"))
+    end
     @testset "simple gaussian" begin
         include(joinpath(testdir, "delayed_sampling/simple_gaussian.jl"))
     end

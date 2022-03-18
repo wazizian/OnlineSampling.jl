@@ -8,6 +8,6 @@ OnlineSMC.loglikelihood(p::MvParticle) = p.loglikelihood
 
 rankone(x::AbstractVector) = x * x'
 
-Statistics.cov(cloud::OnlineSMC.Cloud{MvParticle}) =
+Statistics.cov(cloud::OnlineSMC.Cloud) =
     expectation(rankone, cloud) - rankone(expectation(identity, cloud))
-Statistics.mean(cloud::OnlineSMC.Cloud{MvParticle}) = expectation(identity, cloud)
+Statistics.mean(cloud::OnlineSMC.Cloud) = expectation(identity, cloud)
