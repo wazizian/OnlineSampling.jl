@@ -14,12 +14,12 @@ function resample(
             # TODO (impr): do not copy the particles we have to keep anyway
             deepcopy(cloud.particles[i])
         end
-        hat_weights = ones(length(cloud))
+        log_hat_weights = zeros(length(cloud))
     else
-        hat_weights = cloud.weights
+        log_hat_weights = cloud.logweights
         chosen_particles = cloud.particles
     end
-    return hat_weights, chosen_particles
+    return log_hat_weights, chosen_particles
 end
 
 """
@@ -40,8 +40,8 @@ end
 """
     Compute the next (normalized) weights
 """
-function next_weights(hat_weights::AbstractVector{Float64}, chosen_particles)
-    return @. hat_weights * exp(loglikelihood(chosen_particles))
+function next_logweights(log_hat_weights::AbstractVector{Float64}, chosen_particles)
+    return @. log_hat_weights + loglikelihood(chosen_particles)
 end
 
 function smc_step(
@@ -51,8 +51,8 @@ function smc_step(
     rng::Random.AbstractRNG = Random.GLOBAL_RNG,
     adaptativeresampler::ResampleWithESSThreshold = ResampleWithESSThreshold(),
 ) where {F<:Function,N}
-    hat_weights, chosen_particles = resample(rng, adaptativeresampler, cloud)
+    log_hat_weights, chosen_particles = resample(rng, adaptativeresampler, cloud)
     new_particles = sample_next(rng, proposal!, chosen_particles, args...)
-    new_weights = next_weights(hat_weights, new_particles)
-    return Cloud(new_weights, new_particles)
+    new_logweights = next_logweights(log_hat_weights, new_particles)
+    return Cloud(new_logweights, new_particles)
 end

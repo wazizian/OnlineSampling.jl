@@ -11,6 +11,7 @@ import Distributions
 using Distributions:
     Distribution, Normal, MvNormal, AbstractMvNormal, Multivariate, Continuous
 using LinearAlgebra
+using ConstructionBase
 # For llvm code debugging
 using InteractiveUtils
 

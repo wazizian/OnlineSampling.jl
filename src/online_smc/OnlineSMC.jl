@@ -1,5 +1,6 @@
 module OnlineSMC
 import Distributions
+using StatsFuns: softmax
 using AdvancedPS: ResampleWithESSThreshold
 using Random
 using LinearAlgebra

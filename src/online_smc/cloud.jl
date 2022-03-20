@@ -6,7 +6,7 @@
         loglikelihood : T -> Float64
 """
 struct Cloud{T,W<:AbstractVector{Float64},P<:AbstractVector{T}}
-    weights::W # not normalized
+    logweights::W # not normalized
     particles::P
 end
 
@@ -21,10 +21,10 @@ value(p) = p
 loglikelihood(p) = p.loglikelihood
 
 Base.length(cloud::Cloud) = length(cloud.particles)
-normalized_weights(cloud::Cloud) = normalize(cloud.weights, 1)
+normalized_weights(cloud::Cloud) = softmax(cloud.logweights)
 
 Cloud(particles::P) where {T,P<:AbstractVector{T}} =
-    Cloud{T,Vector{Float64},P}(fill(1.0 / length(particles), length(particles)), particles)
+    Cloud{T,Vector{Float64},P}(fill(-log(length(particles)), length(particles)), particles)
 
 """
     Convenience constructor for Cloud

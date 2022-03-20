@@ -47,6 +47,14 @@ struct LinearTracker{
     offset::T
 end
 
+ConstructionBase.constructorof(
+    ::Type{LinearTracker{T,Linear,D}},
+) where {
+    T<:AbstractVector,
+    Linear<:AbstractMatrix,
+    D<:Distribution{Multivariate,Continuous},
+} = LinearTracker{T,Linear,D}
+
 """
     Pretty-printing of a linear tracker
 """
@@ -86,6 +94,8 @@ value(lt::LinearTracker) = lt.linear * DS.value!(lt.gm, lt.id) + lt.offset
 soft_value(lt::LinearTracker) = lt.linear * DS.rand!(lt.gm, lt.id) + lt.offset
 internal_observe(lt::LinearTracker, obs) =
     DS.observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
+
+Base.size(lt::LinearTracker) = Base.size(lt.offset)
 
 """
    Determine if a r.v. should be a tracked, and by which tracker,
