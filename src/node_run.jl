@@ -47,10 +47,11 @@ function node_run(macro_args...)
 
     code = quote
         $(ctx_symb) = $(@__MODULE__).SamplingCtx()
-        $(state_symb), _, _ = $(init_call)
-        $(loop_code)
-        _, _, $(ret_symb) = $(call)
-        $(ret_symb)
+        let $(state_symb) = $(init_call)[1]
+            $(loop_code)
+            _, _, $(ret_symb) = $(call)
+            $(ret_symb)
+        end
     end
     return code
 end
