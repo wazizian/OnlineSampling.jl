@@ -1,3 +1,5 @@
+![tests](https://github.com/wazizian/OnlineSampling.jl/actions/workflows/test/badge.svg?branch=main)
+
 # OnlineSampling
 
 OnlineSampling.jl is a Julia package for online Bayesian inference on reactive probabilistic models.
