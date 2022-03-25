@@ -1,4 +1,4 @@
-![tests](https://github.com/wazizian/OnlineSampling.jl/actions/workflows/test/badge.svg?branch=main)
+![tests](https://github.com/wazizian/OnlineSampling.jl/actions/workflows/test.yml/badge.svg?branch=main)
 
 # OnlineSampling
 
