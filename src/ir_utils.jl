@@ -40,7 +40,8 @@ is_any_node(ir) =
 """
 function ftypehasmethod(ftype, argtypes...)
     (ftype.name.module === Core.Compiler || ftype <: Core.Builtin) && return true
-    methods = Base._methods_by_ftype(Tuple{ftype,argtypes...}, -1, IRTools.Inner.worldcounter())
+    methods =
+        Base._methods_by_ftype(Tuple{ftype,argtypes...}, -1, IRTools.Inner.worldcounter())
     isempty(methods) && return false
     _, _, _, fullmatch = last(methods)
     return fullmatch

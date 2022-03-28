@@ -93,7 +93,7 @@ end
 
     x2_node = gm.nodes[x2]
     x5_node = gm.nodes[x5]
-    
+
     @test x2_node isa Realized
     @test x5_node isa Marginalized
 
