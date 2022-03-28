@@ -7,6 +7,8 @@ function realize!(gm::GraphicalModel, node::Marginalized, val::AbstractArray)
 
         Realized(_, val)
 
+        @aside update!(gm, _)
+
         detach!(gm, _)
         condition!(gm, _)
 
