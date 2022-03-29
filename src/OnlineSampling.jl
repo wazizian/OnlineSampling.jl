@@ -21,6 +21,10 @@ include("delayed_sampling/DelayedSampling.jl")
 import ..DelayedSampling as DS
 export DelayedSampling
 
+include("belief_propagation/Beliefpropagation.jl")
+import ..Beliefpropagation as BP
+export Beliefpropagation
+
 include("online_smc/OnlineSMC.jl")
 import ..OnlineSMC as SMC
 import ..OnlineSMC: Cloud, expectation
