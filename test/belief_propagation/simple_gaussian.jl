@@ -1,5 +1,5 @@
-using OnlineSampling.DS
-using OnlineSampling.DS: is_inv_sat, Marginalized, Initialized, Realized
+using OnlineSampling.BP
+using OnlineSampling.BP: Marginalized, Initialized, Realized
 using OnlineSampling.CD
 
 @testset "Observe parent" begin
@@ -75,34 +75,5 @@ end
     @test is_inv_sat(gm)
 
     test = OneSampleADTest(samples, Normal(1.0, sqrt(11.0)))
-    # Broken for now because repeated sampling is not correctly implemented yet
     @test pvalue(test) > 0.05
-end
-
-@testset "Observe with 3 children" begin
-    gm = GraphicalModel(Int)
-    @test is_inv_sat(gm)
-
-    μ = [0.0]
-    Σ = ScalMat(1, 1.0)
-    id = 1.0 * I(1)
-
-    x = initialize!(gm, MvNormal(μ, Σ))
-    @test is_inv_sat(gm)
-
-    y = initialize!(gm, CdMvNormal(id, μ, Σ), x)
-    @test is_inv_sat(gm)
-
-    z = initialize!(gm, CdMvNormal(id, μ, Σ), y)
-    @test is_inv_sat(gm)
-
-    observe!(gm, z, [1.0])
-    @test is_inv_sat(gm)
-
-    y_node = gm.nodes[y]
-    @test y_node isa Marginalized
-    @test y_node.d ≈ MvNormal([2 / 3], 2 / 3 * I(1))
-
-    d = jointdist!(gm, y, x)
-    @test d ≈ MvNormal([1, 2] / 3, [1 1; 1 2] - [1 2; 2 4] / 3)
 end

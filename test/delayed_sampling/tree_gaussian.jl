@@ -1,4 +1,5 @@
 using OnlineSampling.DS
+using OnlineSampling.DS: is_inv_sat, Marginalized, Initialized, Realized
 using OnlineSampling.CD
 
 @testset "Observe simple" begin
