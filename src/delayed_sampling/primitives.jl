@@ -66,7 +66,7 @@ update!(gm, node) = gm.nodes[node.id] = node
 updated(gm, node) = gm.nodes[node.id]
 
 function add_marginalized_child!(gm::GraphicalModel, child::Marginalized)
-    if !has_parent(gm, child)
+    if !has_parent(gm, child) || get_parent(gm, child) isa Realized
         return
     end
 

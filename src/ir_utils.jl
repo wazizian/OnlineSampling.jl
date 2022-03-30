@@ -38,11 +38,14 @@ is_any_node(ir) =
     for arguments of types argtypes
     Inspired by the code of `IRTools.meta`
 """
-ftypehasmethod(ftype, argtypes...) =
-    ftype.name.module === Core.Compiler ||
-    ftype <: Core.Builtin ||
-    Base._methods_by_ftype(Tuple{ftype,argtypes...}, -1, IRTools.Inner.worldcounter()) |>
-    isempty |> (!)
+function ftypehasmethod(ftype, argtypes...)
+    (ftype.name.module === Core.Compiler || ftype <: Core.Builtin) && return true
+    methods =
+        Base._methods_by_ftype(Tuple{ftype,argtypes...}, -1, IRTools.Inner.worldcounter())
+    isempty(methods) && return false
+    _, _, _, fullmatch = last(methods)
+    return fullmatch
+end
 
 """
     Apply the function mod.func to the arguments of ir

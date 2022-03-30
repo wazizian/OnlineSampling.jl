@@ -19,7 +19,7 @@ using OnlineSampling.DS
     @test x_node isa Realized
     @test x_node.val ≈ [1.0]
     @test y_node isa Marginalized
-    @test y_node.d ≈ MvNormal([1.0], ScalMat(1, 11.0))
+    @test y_node.d ≈ MvNormal([4.0], ScalMat(1, 2.0))
 end
 
 @testset "Observe child" begin
