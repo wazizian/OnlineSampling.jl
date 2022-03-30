@@ -1,4 +1,5 @@
 using OnlineSampling.DS
+using OnlineSampling.CD
 
 @testset "Observe simple" begin
     gm = GraphicalModel(Int)

@@ -5,14 +5,12 @@ struct Initialized{I<:Integer,F,S,CD<:ConditionalDistribution{F,S}} <: AbstractN
     parent_id::Union{I,Nothing}
     cd::CD
 end
-struct Marginalized{I<:Integer,F,S,D<:Distribution{F,S}} <:
-       AbstractNode{I,F,S}
+struct Marginalized{I<:Integer,F,S,D<:Distribution{F,S}} <: AbstractNode{I,F,S}
     id::I
     d::D
 end
 
-struct Realized{I<:Integer,F,S,A<:AbstractArray,D<:Distribution{F,S}} <:
-        AbstractNode{I,F,S}
+struct Realized{I<:Integer,F,S,A<:AbstractArray,D<:Distribution{F,S}} <: AbstractNode{I,F,S}
     id::I
     d::D
     val::A
@@ -31,15 +29,11 @@ function GraphicalModel(nodes::Vector{T}, last_id::I) where {T<:AbstractNode,I<:
 end
 
 # Initial constructors
-Realized(id::I,A) where {I<:Integer} = Realized(id, Dirac(A), A)
+Realized(id::I, A) where {I<:Integer} = Realized(id, Dirac(A), A)
 
 #Marginalized(id::I, d::Distribution) where {I<:Integer} =
 #    Marginalized(id, d)
-  
+
 
 # Conversion constructors
-Marginalized(node::Initialized, d::Distribution) = Marginalized(
-    node.id,
-    d
-)
-
+Marginalized(node::Initialized, d::Distribution) = Marginalized(node.id, d)

@@ -1,4 +1,5 @@
 using OnlineSampling.DS
+using OnlineSampling.CD
 
 @testset "Observe parent" begin
     gm = GraphicalModel(Int)

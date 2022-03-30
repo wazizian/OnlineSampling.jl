@@ -1,11 +1,11 @@
 function dist!(gm::GraphicalModel, node::Initialized)
     @assert has_parent(gm, node)
     parent = get_parent(gm, node)
-    parent_dist = dist!(gm,parent)
+    parent_dist = dist!(gm, parent)
     cond_dist = condition_cd(parent_dist, node.cd)
     if !(parent isa Realized)
-        new_node = Initialized(parent.id,node.id,cond_dist)
-        set!(gm,new_node)
+        new_node = Initialized(parent.id, node.id, cond_dist)
+        set!(gm, new_node)
     end
     node.cd(parent_dist)
 end
@@ -13,7 +13,7 @@ end
 function dist!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
     @assert has_parent(gm, node)
     parent = get_parent(gm, node)
-    parent_dist = dist!(gm,parent)
+    parent_dist = dist!(gm, parent)
     return node.cd(parent_dist), condition(parent_dist, node.cd, value)
 end
 
@@ -33,9 +33,9 @@ function observe!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
     parent = get_parent(gm, node)
     node_dist, new_dist_parent = dist!(gm, node, value)
     ll = logpdf(node_dist, value)
-    new_node = Marginalized(parent.id,new_dist_parent)
-    set!(gm,new_node)
-    realized_node = Realized(node.id,value)
+    new_node = Marginalized(parent.id, new_dist_parent)
+    set!(gm, new_node)
+    realized_node = Realized(node.id, value)
     set!(gm, realized_node)
     return ll
 end
@@ -83,7 +83,7 @@ function value!(gm::GraphicalModel, node::Union{Marginalized,Initialized})
     #@assert has_parent(gm, node)
     #parent = get_parent(gm, node)
     node_dist = dist!(gm, node)
-    new_node = Marginalized(node.id,node_dist)
+    new_node = Marginalized(node.id, node_dist)
     set!(gm, new_node)
     _, val = sample!(gm, new_node)
     return new_node, val

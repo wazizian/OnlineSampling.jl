@@ -18,4 +18,3 @@ end
 
 get_parent(gm, node) = gm.nodes[node.parent_id]
 has_parent(gm, node) = !isnothing(node.parent_id)
-

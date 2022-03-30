@@ -7,12 +7,13 @@ using LinkedLists
 using Accessors
 using Chain
 
-include("cd.jl")
+include("../cond_distr/CondDistr.jl")
+using ..CondDistr
+
 include("structs.jl")
-include("linear_gaussian_cd.jl")
 include("primitives.jl")
 include("ops.jl")
 
-export GraphicalModel, initialize!, value!, observe!, dist!, rand!, jointdist!, CdMvNormal
+export GraphicalModel, initialize!, value!, observe!, dist!, rand!, jointdist!
 
 end
