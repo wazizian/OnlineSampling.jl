@@ -9,7 +9,6 @@ using MacroTools
 using MacroTools: postwalk
 using IRTools
 using OnlineSampling
-using .DelayedSampling: is_inv_sat, Marginalized, Initialized, Realized
 
 testdir = dirname(@__FILE__)
 
@@ -26,13 +25,16 @@ include(joinpath(testdir, "online_smc/utils.jl"))
 
 @testset TS exit_on_error = exit_on_error "OnlineSampling.jl" begin
     @testset "cd gaussian" begin
-        include(joinpath(testdir, "delayed_sampling/cd_gaussian.jl"))
+        include(joinpath(testdir, "cond_distr/cd_gaussian.jl"))
     end
-    @testset "simple gaussian" begin
+    @testset "DS simple gaussian" begin
         include(joinpath(testdir, "delayed_sampling/simple_gaussian.jl"))
     end
-    @testset "tree of gaussians" begin
+    @testset "DS tree of gaussians" begin
         include(joinpath(testdir, "delayed_sampling/tree_gaussian.jl"))
+    end
+    @testset "BP simple gaussian" begin
+        include(joinpath(testdir, "belief_propagation/simple_gaussian.jl"))
     end
     @testset "online smc" begin
         include(joinpath(testdir, "online_smc/simple_gaussian.jl"))

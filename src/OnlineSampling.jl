@@ -17,9 +17,17 @@ using InteractiveUtils
 
 using Reexport
 
+include("cond_distr/CondDistr.jl")
+import ..CondDistr as CD
+import ..CondDistr: CdMvNormal
+
 include("delayed_sampling/DelayedSampling.jl")
 import ..DelayedSampling as DS
 export DelayedSampling
+
+include("belief_propagation/Beliefpropagation.jl")
+import ..Beliefpropagation as BP
+export Beliefpropagation
 
 include("online_smc/OnlineSMC.jl")
 import ..OnlineSMC as SMC

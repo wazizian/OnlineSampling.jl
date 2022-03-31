@@ -1,3 +1,6 @@
+using OnlineSampling.CD
+import OnlineSampling.CD: condition_default, CdNormal
+
 unmvnormal(d::MvNormal) = Normal(only(d.μ), (sqrt ∘ only)(d.Σ))
 
 @testset "condition gaussian" begin
@@ -6,14 +9,12 @@ unmvnormal(d::MvNormal) = Normal(only(d.μ), (sqrt ∘ only)(d.Σ))
     pos = 0.5:10:0.5
     for (lc, μp, μc, σp, σc, vc) in Iterators.product(lin, gen, gen, pos, pos, gen)
         mvp = MvNormal([μp], [σp^2;;])
-        mvc = DelayedSampling.CdMvNormal([lc;;], [μc], [σc^2;;])
-        @test DelayedSampling.condition_default(mvp, mvc, [vc]) ≈
-              DelayedSampling.condition(mvp, mvc, [vc])
+        mvc = CdMvNormal([lc;;], [μc], [σc^2;;])
+        @test condition_default(mvp, mvc, [vc]) ≈ condition(mvp, mvc, [vc])
 
         p = Normal(μp, σp)
-        c = DelayedSampling.CdNormal(lc, μc, σc)
+        c = CdNormal(lc, μc, σc)
         @test unmvnormal(mvc(mvp)) ≈ c(p)
-        @test (unmvnormal ∘ DelayedSampling.condition)(mvp, mvc, [vc]) ≈
-              DelayedSampling.condition(p, c, vc)
+        @test (unmvnormal ∘ condition)(mvp, mvc, [vc]) ≈ condition(p, c, vc)
     end
 end
