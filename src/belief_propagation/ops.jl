@@ -7,7 +7,10 @@ function dist!(gm::GraphicalModel, node::Initialized)
         new_node = Initialized(parent.id, node.id, cond_dist)
         set!(gm, new_node)
     end
-    node.cd(parent_dist)
+    node_dist = node.cd(parent_dist)
+    new_node = Marginalized(node.id, node_dist)
+    set!(gm, new_node)
+    return new_node
 end
 
 function realize!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
@@ -27,7 +30,6 @@ function observe!(gm::GraphicalModel, node::Marginalized, value::AbstractArray)
     return logpdf(node.d, value)
 end
 
-
 function observe!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
     @assert has_parent(gm, node)
     parent = get_parent(gm, node)
@@ -40,6 +42,11 @@ function observe!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
     return ll
 end
 
+function sample!(gm::GraphicalModel, node::Marginalized)
+    val = rand(node.d)
+    return observe!(gm, node, val), val
+end
+
 function value!(gm::GraphicalModel, node::Realized)
     return node, node.val
 end
@@ -47,21 +54,15 @@ end
 function value!(gm::GraphicalModel, node::Union{Marginalized,Initialized})
     #@assert has_parent(gm, node)
     #parent = get_parent(gm, node)
-    node_dist = dist!(gm, node)
-    new_node = Marginalized(node.id, node_dist)
-    set!(gm, new_node)
+    new_node = dist!(gm, node)
     _, val = sample!(gm, new_node)
     return new_node, val
 end
 
 function rand!(gm::GraphicalModel, node::Initialized)
-    node_dist = dist!(gm, node)
-    new_node = Marginalized(node.id, node_dist)
-    set!(gm, new_node)
-    _, val = sample!(gm, new_node)
+    new_node = dist!(gm, node)
+    val = rand(new_node.d)
     return new_node, val
-    #d = dist!(gm, node)
-    #return rand!(gm, _)
 end
 
 rand!(::GraphicalModel, node::Marginalized) = (node, rand(node.d))
