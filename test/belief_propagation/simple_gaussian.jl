@@ -15,8 +15,8 @@ using OnlineSampling.CD
 
     @test x_node isa BP.Realized
     @test x_node.val ≈ [1.0]
-    @test y_node isa BP.Marginalized
-    @test y_node.d ≈ MvNormal([4.0], ScalMat(1, 2.0))
+    @test y_node isa BP.Initialized
+    @test BP.dist(gm, y_node) ≈ MvNormal([4.0], ScalMat(1, 2.0))
 end
 
 @testset "Observe child" begin
@@ -34,7 +34,7 @@ end
     @test y_node isa BP.Realized
     @test y_node.val ≈ [2.0]
     @test x_node isa BP.Marginalized
-    @test x_node.d ≈ MvNormal([3 / 11], ScalMat(1, 2 / 11))
+    @test BP.dist(gm, x_node) ≈ MvNormal([3 / 11], ScalMat(1, 2 / 11))
 end
 
 @testset "Child distribution" begin
@@ -44,7 +44,7 @@ end
 
     y = initialize!(gm, CdMvNormal(3.0 * I(1), [1.0], ScalMat(1, 2.0)), x)
 
-    d = BP.dist!(gm, y)
+    d = BP.dist(gm, y)
     @test d ≈ MvNormal([1.0], ScalMat(1, 11.0))
 end
 

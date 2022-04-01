@@ -24,6 +24,8 @@ CdMvNormal(
 (cd::CdMvNormal)(parent::AbstractVector) = MvNormal(cd.linear * parent + cd.μ, cd.Σ)
 (cd::CdMvNormal)(parent::MvNormal) =
     MvNormal(cd.linear * parent.μ + cd.μ, X_A_Xt(parent.Σ, cd.linear) + cd.Σ)
+(cd::CdMvNormal)(parent::Dirac) =
+    MvNormal(cd.linear * parent.value + cd.μ,  cd.Σ)
 
 function condition(parent::MvNormal, child::CdMvNormal, child_val::AbstractArray)
     child_d = child(parent)
@@ -33,6 +35,10 @@ function condition(parent::MvNormal, child::CdMvNormal, child_val::AbstractArray
     return MvNormal(new_mean, new_cov)
 end
 
+function condition(parent::Dirac, child::CdMvNormal, child_val::AbstractArray)
+    return parent
+end
+
 function condition_cd(parent::MvNormal, child::CdMvNormal)
     child_d = child(parent)
     cor = parent.Σ * transpose(child.linear)
@@ -40,6 +46,10 @@ function condition_cd(parent::MvNormal, child::CdMvNormal)
     new_mean = parent.μ - cor * (child_d.Σ \ child_d.μ)
     linear = transpose(child_d.Σ \ transpose(cor))
     return CdMvNormal(linear, new_mean, new_cov)
+end
+
+function condition_cd(parent::Dirac, child::CdMvNormal)
+    return parent
 end
 
 function jointdist(parent::MvNormal, child::CdMvNormal)

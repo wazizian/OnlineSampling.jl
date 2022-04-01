@@ -1,3 +1,19 @@
+function dist(gm::GraphicalModel, node::Initialized)
+    @assert has_parent(gm, node)
+    parent = get_parent(gm, node)
+    parent_dist = dist(gm, parent)
+    cond_dist = condition_cd(parent_dist, node.cd)
+    node_dist = node.cd(parent_dist)
+    #new_node = Marginalized(node.id, node_dist)
+    #set!(gm, new_node)
+    #return new_node
+    return node_dist
+end
+
+function dist(gm::GraphicalModel, node::Union{Marginalized,Realized})
+    node.d
+end
+
 function dist!(gm::GraphicalModel, node::Initialized)
     @assert has_parent(gm, node)
     parent = get_parent(gm, node)
@@ -8,9 +24,10 @@ function dist!(gm::GraphicalModel, node::Initialized)
         set!(gm, new_node)
     end
     node_dist = node.cd(parent_dist)
-    new_node = Marginalized(node.id, node_dist)
-    set!(gm, new_node)
-    return new_node
+    #new_node = Marginalized(node.id, node_dist)
+    #set!(gm, new_node)
+    #return new_node
+    return node_dist
 end
 
 function realize!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
@@ -51,17 +68,24 @@ function value!(gm::GraphicalModel, node::Realized)
     return node, node.val
 end
 
-function value!(gm::GraphicalModel, node::Union{Marginalized,Initialized})
-    #@assert has_parent(gm, node)
-    #parent = get_parent(gm, node)
-    new_node = dist!(gm, node)
-    _, val = sample!(gm, new_node)
+function value!(gm::GraphicalModel, node::Marginalized)
+    _, val = sample!(gm, node)
+    return node, val
+end
+
+function value!(gm::GraphicalModel, node::Initialized)
+    node_dist = dis!(gm, node)
+    val = rand(node_dist)
+    new_node = Realized(node.id, val)
+    set!(gm,new_node)
     return new_node, val
 end
 
 function rand!(gm::GraphicalModel, node::Initialized)
-    new_node = dist!(gm, node)
-    val = rand(new_node.d)
+    node_dist = dist!(gm, node)
+    val = rand(node_dist)
+    new_node = Marginalized(node.id, node_dist)
+    set!(gm, new_node)
     return new_node, val
 end
 
@@ -83,8 +107,6 @@ function initialize!(
     parent_id::I,
 ) where {I}
     id = new_id(gm)
-    #parent = gm.nodes[parent_id]
-    #parent_child_ref = push!(parent.children, id)
     node = Initialized(id, parent_id, cd)
     set!(gm, node)
     @debug "Initialize $node"
@@ -111,6 +133,12 @@ end
 
 function dist!(gm::GraphicalModel{I}, id::I) where {I}
     @debug "Dist $(gm.nodes[id])"
-    node = dist!(gm, gm.nodes[id])
-    return node.d
+    d = dist!(gm, gm.nodes[id])
+    return d
+end
+
+function dist(gm::GraphicalModel{I}, id::I) where {I}
+    @debug "Dist $(gm.nodes[id])"
+    d = dist(gm, gm.nodes[id])
+    return d
 end
