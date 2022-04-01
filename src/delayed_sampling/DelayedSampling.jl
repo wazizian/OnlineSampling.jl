@@ -7,6 +7,8 @@ using LinkedLists
 using Accessors
 using Chain
 
+import ..OnlineSampling: dist!, observe!, initialize!
+
 include("../cond_distr/CondDistr.jl")
 using ..CondDistr
 
@@ -14,6 +16,6 @@ include("structs.jl")
 include("primitives.jl")
 include("ops.jl")
 
-export GraphicalModel, initialize!, value!, observe!, dist!, rand!, jointdist!
+export GraphicalModel,  initialize!, value!, observe!, dist!, rand!, jointdist!
 
 end

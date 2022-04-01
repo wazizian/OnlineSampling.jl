@@ -55,8 +55,13 @@ function value!(gm::GraphicalModel, node::Union{Marginalized,Initialized})
 end
 
 function rand!(gm::GraphicalModel, node::Initialized)
-    d = dist!(gm, node)
-    return rand!(gm, _)
+    node_dist = dist!(gm, node)
+    new_node = Marginalized(node.id, node_dist)
+    set!(gm, new_node)
+    _, val = sample!(gm, new_node)
+    return new_node, val
+    #d = dist!(gm, node)
+    #return rand!(gm, _)
 end
 
 rand!(::GraphicalModel, node::Marginalized) = (node, rand(node.d))
@@ -99,7 +104,7 @@ end
 
 function observe!(gm::GraphicalModel{I}, id::I, value::AbstractArray) where {I}
     @debug "Observe $(gm.nodes[id]) with value $value"
-    _, ll = observe!(gm, gm.nodes[id], value)
+    ll = observe!(gm, gm.nodes[id], value)
     return ll
 end
 
