@@ -100,7 +100,7 @@ function build_smc_call(marg, node_particles, dsval, f, args...)
         # how can we remedy this ?
         @node $(marg) $(@__MODULE__).smc(
             $(node_particles),
-            $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).DSOffCtx,
+            $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).OffCtx,
             $(f),
             $(args...),
         )
