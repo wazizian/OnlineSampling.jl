@@ -199,6 +199,8 @@ function dist!(gm::GraphicalModel{I}, id::I) where {I}
     return node.d
 end
 
+dist(gm::GraphicalModel, id) = dist!(gm, id)
+
 function jointdist!(gm::GraphicalModel{I}, child_id::I, parent_id::I) where {I}
     #return the dist of (child, parent)
     parent = gm.nodes[parent_id]

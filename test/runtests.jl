@@ -54,7 +54,7 @@ include(joinpath(testdir, "online_smc/utils.jl"))
     @testset "node smc" begin
         include(joinpath(testdir, "node_smc.jl"))
     end
-    @testset "node ds" begin
-        include(joinpath(testdir, "node_ds.jl"))
+    @testset "node symb" begin
+        include(joinpath(testdir, "node_symb.jl"))
     end
 end

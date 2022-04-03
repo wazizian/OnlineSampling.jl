@@ -123,9 +123,9 @@ track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,Int64}) =
 """
 # TODO (api impr): clean the lines
 Distributions.MvNormal(
-    μ::LinearTracker{T,Linear,D},
+    μ::LinearTracker{G, T,Linear,D},
     cov,
-) where {T,Linear,D<:AbstractMvNormal} = (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
+) where {G<:GraphicalModel, T,Linear,D<:AbstractMvNormal} = (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
 
 """
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled

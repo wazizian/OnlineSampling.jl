@@ -10,6 +10,8 @@ function observe! end
 
 function dist! end
 
+function dist end
+
 export initialize!, value!, rand!, observe!
 
 end

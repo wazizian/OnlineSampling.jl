@@ -1,3 +1,10 @@
+"""
+    Debug function: to print the actual distribution of a
+    linear tracker
+"""
+dist(lt::OnlineSampling.LinearTracker) = OnlineSampling.SymbInterface.dist(lt.gm, lt.id)
+dist(x::Any) = x
+
 @testset "Gaussian counter" begin
     Σ = ScalMat(1, 1.0)
     N = 1000
@@ -9,6 +16,11 @@
         return x
     end
     cloud = @node T = T particles = N DS = true f()
+    samples = dropdims(rand(cloud, Nsamples); dims = 1)
+    test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
+    @test (pvalue(test) > 0.05) || test
+
+    cloud = @node T = T particles = N BP = true f()
     samples = dropdims(rand(cloud, Nsamples); dims = 1)
     test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
     @test (pvalue(test) > 0.05) || test
@@ -41,12 +53,18 @@ end
     ds_cloud = @node T = 5 particles = N DS = true hmm(obs)
     ds_samples = dropdims(rand(ds_cloud, Nsamples); dims = 1)
 
-    # @show (mean(smc_cloud), mean(ds_cloud))
+    bp_cloud = @node T = 5 particles = N BP = true hmm(obs)
+    bp_samples = dropdims(rand(bp_cloud, Nsamples); dims = 1)
 
-    # @show (cov(smc_cloud), cov(ds_cloud))
+    #@show (mean(ds_cloud), mean(bp_cloud))
 
+    #@show (cov(ds_cloud), cov(bp_cloud))
+    #
     test = KSampleADTest(smc_samples, ds_samples)
-    @test (pvalue(test) > 0.01) || test
+    @test (pvalue(test) > 0.05) || test
+
+    test = KSampleADTest(bp_samples, ds_samples)
+    @test (pvalue(test) > 0.05) || test
 end
 
 @testset "Comparison d-dim gaussian hmm" begin
@@ -94,6 +112,9 @@ end
     ds_cloud = @node T = T particles = N DS = true hmm(obs)
     ds_samples = rand(ds_cloud, Nsamples)
 
+    bp_cloud = @node T = T particles = N BP = true hmm(obs)
+    bp_samples = rand(bp_cloud, Nsamples)
+
     # @show (mean(smc_cloud), mean(ds_cloud))
 
     # @show (cov(smc_cloud), cov(ds_cloud))
@@ -102,5 +123,8 @@ end
     for test in tests
         result = test(smc_samples', ds_samples')
         @test (pvalue(result) > 0.01) || result
+
+        result = test(ds_samples', bp_samples')
+        @test (pvalue(result) > 0.05) || result
     end
 end
