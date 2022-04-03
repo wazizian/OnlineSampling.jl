@@ -24,8 +24,7 @@ CdMvNormal(
 (cd::CdMvNormal)(parent::AbstractVector) = MvNormal(cd.linear * parent + cd.μ, cd.Σ)
 (cd::CdMvNormal)(parent::MvNormal) =
     MvNormal(cd.linear * parent.μ + cd.μ, X_A_Xt(parent.Σ, cd.linear) + cd.Σ)
-(cd::CdMvNormal)(parent::Dirac) =
-    MvNormal(cd.linear * parent.value + cd.μ,  cd.Σ)
+(cd::CdMvNormal)(parent::Dirac) = MvNormal(cd.linear * parent.value + cd.μ, cd.Σ)
 
 function condition(parent::MvNormal, child::CdMvNormal, child_val::AbstractArray)
     child_d = child(parent)

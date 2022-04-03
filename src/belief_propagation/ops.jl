@@ -77,7 +77,7 @@ function value!(gm::GraphicalModel, node::Initialized)
     node_dist = dis!(gm, node)
     val = rand(node_dist)
     new_node = Realized(node.id, val)
-    set!(gm,new_node)
+    set!(gm, new_node)
     return new_node, val
 end
 

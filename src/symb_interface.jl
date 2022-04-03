@@ -1,4 +1,4 @@
-module SymbInterface   
+module SymbInterface
 
 function initialize! end
 

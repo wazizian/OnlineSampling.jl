@@ -9,7 +9,6 @@ using Accessors
 
 import ..SymbInterface: initialize!, value!, rand!, observe!
 
-include("../cond_distr/CondDistr.jl")
 using ..CondDistr
 
 include("structs.jl")
