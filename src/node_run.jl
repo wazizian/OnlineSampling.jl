@@ -15,8 +15,14 @@ function node_run(macro_args...)
     end
 
     if node_particles != :(0)
-        smc_call =
-            build_smc_call(:(T = $(n_iterations_expr)), node_particles, dsval, bpval, f, args...)
+        smc_call = build_smc_call(
+            :(T = $(n_iterations_expr)),
+            node_particles,
+            dsval,
+            bpval,
+            f,
+            args...,
+        )
         return esc(smc_call)
     end
 

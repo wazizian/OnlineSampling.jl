@@ -93,7 +93,9 @@ end
     Build a call to the SMC as a node call
 """
 function build_smc_call(marg, node_particles, dsval, bpval, f, args...)
-    (dsval != :(false)) && (bpval != :(false)) && error("DS and BP symbolic inference cannot be both enabled")
+    (dsval != :(false)) &&
+        (bpval != :(false)) &&
+        error("DS and BP symbolic inference cannot be both enabled")
     symbval = if dsval != :(false)
         :($(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).OffCtx)
     else
@@ -104,12 +106,7 @@ function build_smc_call(marg, node_particles, dsval, bpval, f, args...)
         # For this, add a method to OnlineSMC.likelihood for the store of smc (whose type is det)
         # TODO (impr): the context used at toplevel and inside SMCs are disjoint
         # how can we remedy this ?
-        @node $(marg) $(@__MODULE__).smc(
-            $(node_particles),
-            $(symbval),
-            $(f),
-            $(args...),
-        )
+        @node $(marg) $(@__MODULE__).smc($(node_particles), $(symbval), $(f), $(args...))
     end
 end
 

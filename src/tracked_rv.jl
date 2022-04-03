@@ -17,8 +17,8 @@ struct BPOnCtx <: SamplingCtx
 end
 BPOnCtx() = BPOnCtx(BP.GraphicalModel(Int64))
 
-const OnCtx = Union{DSOnCtx, BPOnCtx}
-const GraphicalModel = Union{DS.GraphicalModel, BP.GraphicalModel}
+const OnCtx = Union{DSOnCtx,BPOnCtx}
+const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel}
 
 """
     Abstract structure describing a rv which belongs
@@ -112,8 +112,7 @@ Base.size(lt::LinearTracker) = Base.size(lt.offset)
    and sample if needed
 """
 track_rv(::GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
-track_rv(gm::GraphicalModel, d::AbstractMvNormal) =
-    LinearTracker(gm, initialize!(gm, d), d)
+track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize!(gm, d), d)
 # TODO (api impr): clean the two following lines
 track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,Int64}) =
     LinearTracker(gm, initialize!(gm, t...), t[1]())
@@ -123,9 +122,10 @@ track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,Int64}) =
 """
 # TODO (api impr): clean the lines
 Distributions.MvNormal(
-    μ::LinearTracker{G, T,Linear,D},
+    μ::LinearTracker{G,T,Linear,D},
     cov,
-) where {G<:GraphicalModel, T,Linear,D<:AbstractMvNormal} = (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
+) where {G<:GraphicalModel,T,Linear,D<:AbstractMvNormal} =
+    (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
 
 """
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled
