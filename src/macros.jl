@@ -17,9 +17,23 @@ macro node(args...)
     try
         splitted = splitdef(func)
     catch AssertionError
-        return node_run(args...)
+        error("Improper definition of @node: got @node $(args...)")
     end
     return node_build(splitted)
+end
+
+macro nodecall(args...)
+    error("Ill-formed @nodecall: got @nodecall $(args...)")
+end
+
+macro nodeiter(args...)
+    return node_iter(args...)
+end
+
+macro noderun(args...)
+    return quote 
+        run($(node_iter(args...)))
+    end
 end
 
 macro node_ir(args...)
