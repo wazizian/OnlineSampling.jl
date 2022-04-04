@@ -5,7 +5,7 @@
 dist(lt::OnlineSampling.LinearTracker) = OnlineSampling.SymbInterface.dist(lt.gm, lt.id)
 dist(x::Any) = x
 
-@testset "Gaussian counter" begin
+@testset "Gaussian random walk" begin
     Σ = ScalMat(1, 1.0)
     N = 1000
     Nsamples = 100
