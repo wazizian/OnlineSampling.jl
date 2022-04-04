@@ -1,17 +1,24 @@
 """
     Abstract structure which describes the sampling context:
-    the loglikelihood and whether ds is enabled
+    whether symbolic inference is enabled and, if this is the case, which one.
 """
 abstract type SamplingCtx end
 
-struct DSOffCtx <: SamplingCtx end
+struct OffCtx <: SamplingCtx end
+SamplingCtx() = OffCtx()
 
 struct DSOnCtx <: SamplingCtx
     gm::DS.GraphicalModel
 end
 DSOnCtx() = DSOnCtx(DS.GraphicalModel(Int64))
 
-SamplingCtx() = DSOffCtx()
+struct BPOnCtx <: SamplingCtx
+    gm::BP.GraphicalModel
+end
+BPOnCtx() = BPOnCtx(BP.GraphicalModel(Int64))
+
+const OnCtx = Union{DSOnCtx,BPOnCtx}
+const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel}
 
 """
     Abstract structure describing a rv which belongs
@@ -37,23 +44,25 @@ end
     Tracker for vector-valued r.v. which authorizes linear transformations
 """
 struct LinearTracker{
+    G<:GraphicalModel,
     T<:AbstractVector,
     Linear<:AbstractMatrix,
     D<:Distribution{Multivariate,Continuous},
 } <: AbstractTrackedRV{T,Multivariate,Continuous,D}
-    gm::DS.GraphicalModel
+    gm::G
     id::Int64
     linear::Linear
     offset::T
 end
 
 ConstructionBase.constructorof(
-    ::Type{LinearTracker{T,Linear,D}},
+    ::Type{LinearTracker{G,T,Linear,D}},
 ) where {
+    G<:GraphicalModel,
     T<:AbstractVector,
     Linear<:AbstractMatrix,
     D<:Distribution{Multivariate,Continuous},
-} = LinearTracker{T,Linear,D}
+} = LinearTracker{G,T,Linear,D}
 
 """
     Pretty-printing of a linear tracker
@@ -67,10 +76,11 @@ end
 """
 # Note that d is only used for its type and dimensions
 function LinearTracker(
-    gm::DS.GraphicalModel,
+    gm::GraphicalModel,
     id::Int64,
     template_d::Distribution{Multivariate,Continuous},
 )
+    G = typeof(gm)
     dim = Base.size(template_d)[1]
     elt = Base.eltype(template_d)
     offset = zeros(elt, dim)
@@ -78,7 +88,7 @@ function LinearTracker(
     T = typeof(offset)
     Linear = typeof(linear)
     D = typeof(template_d)
-    return LinearTracker{T,Linear,D}(gm, id, linear, offset)
+    return LinearTracker{G,T,Linear,D}(gm, id, linear, offset)
 end
 
 # Overloads
@@ -90,10 +100,10 @@ Base.:*(A::AbstractMatrix, lt::LinearTracker) = @chain lt begin
 end
 
 # TrackedObservation interface
-value(lt::LinearTracker) = lt.linear * DS.value!(lt.gm, lt.id) + lt.offset
-soft_value(lt::LinearTracker) = lt.linear * DS.rand!(lt.gm, lt.id) + lt.offset
+value(lt::LinearTracker) = lt.linear * value!(lt.gm, lt.id) + lt.offset
+soft_value(lt::LinearTracker) = lt.linear * rand!(lt.gm, lt.id) + lt.offset
 internal_observe(lt::LinearTracker, obs) =
-    DS.observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
+    observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
 
 Base.size(lt::LinearTracker) = Base.size(lt.offset)
 
@@ -101,24 +111,24 @@ Base.size(lt::LinearTracker) = Base.size(lt.offset)
    Determine if a r.v. should be a tracked, and by which tracker,
    and sample if needed
 """
-track_rv(::DS.GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
-track_rv(gm::DS.GraphicalModel, d::AbstractMvNormal) =
-    LinearTracker(gm, DS.initialize!(gm, d), d)
+track_rv(::GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
+track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize!(gm, d), d)
 # TODO (api impr): clean the two following lines
-track_rv(gm::DS.GraphicalModel, t::Tuple{DS.CdMvNormal,Int64}) =
-    LinearTracker(gm, DS.initialize!(gm, t...), t[1]())
+track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,Int64}) =
+    LinearTracker(gm, initialize!(gm, t...), t[1]())
 
 """
     Compute the conditional MvNormal distribution from a LinearTracker
 """
 # TODO (api impr): clean the lines
 Distributions.MvNormal(
-    μ::LinearTracker{T,Linear,D},
+    μ::LinearTracker{G,T,Linear,D},
     cov,
-) where {T,Linear,D<:AbstractMvNormal} = (DS.CdMvNormal(μ.linear, μ.offset, cov), μ.id)
+) where {G<:GraphicalModel,T,Linear,D<:AbstractMvNormal} =
+    (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
 
 """
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled
 """
-internal_rand(::DSOffCtx, d::Distribution) = TrackedObservation(rand(d), d)
-internal_rand(ctx::DSOnCtx, d) = track_rv(ctx.gm, d)
+internal_rand(::OffCtx, d::Distribution) = TrackedObservation(rand(d), d)
+internal_rand(ctx::OnCtx, d) = track_rv(ctx.gm, d)

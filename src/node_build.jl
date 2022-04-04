@@ -92,18 +92,21 @@ end
 """
     Build a call to the SMC as a node call
 """
-function build_smc_call(marg, node_particles, dsval, f, args...)
+function build_smc_call(marg, node_particles, dsval, bpval, f, args...)
+    (dsval != :(false)) &&
+        (bpval != :(false)) &&
+        error("DS and BP symbolic inference cannot be both enabled")
+    symbval = if dsval != :(false)
+        :($(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).OffCtx)
+    else
+        :($(bpval) ? $(@__MODULE__).BPOnCtx : $(@__MODULE__).OffCtx)
+    end
     return quote
         # TODO (feat): use expectation over cloud as likelihood
         # For this, add a method to OnlineSMC.likelihood for the store of smc (whose type is det)
         # TODO (impr): the context used at toplevel and inside SMCs are disjoint
         # how can we remedy this ?
-        @node $(marg) $(@__MODULE__).smc(
-            $(node_particles),
-            $(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).DSOffCtx,
-            $(f),
-            $(args...),
-        )
+        @node $(marg) $(@__MODULE__).smc($(node_particles), $(symbval), $(f), $(args...))
     end
 end
 
@@ -116,19 +119,21 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
     return prewalk(body) do ex
         @capture(ex, @node margs__ f_(args__)) || return ex
         node_particles = :(0)
-        reset_cond = dsval = :(false)
+        reset_cond = dsval = bpval = :(false)
         for marg in margs
             if @capture(marg, particles = val_)
                 node_particles = val
             elseif @capture(marg, DS = val_)
                 dsval = val
+            elseif @capture(marg, BP = val_)
+                bpval = val
             else
                 reset_cond = marg
             end
         end
 
         if node_particles != :(0)
-            smc_call = build_smc_call(reset_cond, node_particles, dsval, f, args...)
+            smc_call = build_smc_call(reset_cond, node_particles, dsval, bpval, f, args...)
             return quote
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here

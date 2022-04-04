@@ -6,16 +6,23 @@ function node_run(macro_args...)
     # Determine if number of iterations is provided
     n_iterations_expr = nothing
     node_particles = :(0)
-    dsval = :(false)
+    dsval = bpval = :(false)
     for macro_arg in macro_args
         @capture(macro_arg, T = val_) && (n_iterations_expr = val)
         @capture(macro_arg, particles = val_) && (node_particles = val)
         @capture(macro_arg, DS = val_) && (dsval = val)
+        @capture(macro_arg, BP = val_) && (bpval = val)
     end
 
     if node_particles != :(0)
-        smc_call =
-            build_smc_call(:(T = $(n_iterations_expr)), node_particles, dsval, f, args...)
+        smc_call = build_smc_call(
+            :(T = $(n_iterations_expr)),
+            node_particles,
+            dsval,
+            bpval,
+            f,
+            args...,
+        )
         return esc(smc_call)
     end
 

@@ -7,13 +7,14 @@ using LinkedLists
 using Accessors
 using Chain
 
-include("../cond_distr/CondDistr.jl")
+import ..SymbInterface: initialize!, value!, rand!, observe!, dist!, dist
+
 using ..CondDistr
 
 include("structs.jl")
 include("primitives.jl")
 include("ops.jl")
 
-export GraphicalModel, initialize!, value!, observe!, dist!, rand!, jointdist!
+export initialize!, value!, observe!, rand!
 
 end

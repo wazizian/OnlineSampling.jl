@@ -21,13 +21,16 @@ include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
 import ..CondDistr: CdMvNormal
 
+include("symb_interface.jl")
+using .SymbInterface
+
 include("delayed_sampling/DelayedSampling.jl")
 import ..DelayedSampling as DS
-export DelayedSampling
+export DS
 
 include("belief_propagation/Beliefpropagation.jl")
 import ..Beliefpropagation as BP
-export Beliefpropagation
+export BP
 
 include("online_smc/OnlineSMC.jl")
 import ..OnlineSMC as SMC
