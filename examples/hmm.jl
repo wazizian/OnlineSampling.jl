@@ -18,7 +18,7 @@ end
 end
 
 steps = 100
-obs = reshape(Vector{Float64}(1:steps), (steps, 1))  # the first dim of the input must be the number of time steps
-dist = @node T = steps particles = 1 hmm(obs)        # launch the inference with 1 particles where steps is the number of time steps. 
-samples = rand(dist, 1000)                           # sample from the posterior
+obs = reshape(Vector{Float64}(1:steps), (steps, 1))           # the first dim of the input must be the number of time steps
+dist = @node T = steps particles = 1 hmm(eachrow(obs))        # launch the inference with 1 particles where steps is the number of time steps. 
+samples = rand(dist, 1000)                                    # sample from the posterior
 println("Last position: ", mean(samples), " expected: ", obs[steps])
