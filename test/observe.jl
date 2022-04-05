@@ -25,7 +25,7 @@ end
     @test OnlineSampling.is_node(ir)
     @test !OnlineSampling.is_reset_node(ir)
 
-    @node T = 3 f(obs)
+    @noderun T = 3 f(obs)
 end
 
 @testset "passed obs" begin
@@ -39,13 +39,13 @@ end
     end
 
     @node function h(obs)
-        y = @node f()
-        @node g(y, obs)
+        y = @nodecall f()
+        @nodecall g(y, obs)
     end
 
     obs = [1.0, 2.0, 3.0]
 
-    @node T = 3 h(obs)
+    @noderun T = 3 h(obs)
 end
 
 @testset "gaussian hmm" begin
@@ -57,19 +57,19 @@ end
         return x, y
     end
     @node function hmm(obs)
-        x, y = @node model()
+        x, y = @nodecall model()
         @observe y obs
         return x
     end
     @node function main(obs)
-        x = @node hmm(obs)
+        x = @nodecall hmm(obs)
     end
 
     obs = Vector{Float64}(1:5)
     obs = reshape(obs, (length(obs), 1))
     @assert size(obs) == (5, 1)
 
-    @node T = 5 main(obs)
+    @noderun T = 5 main(eachrow(obs))
 end
 
 @testset "invalid obs" begin
@@ -79,7 +79,7 @@ end
     end
     obs = [1.0, 2.0, 3.0]
 
-    @test_throws OnlineSampling.UntrackedObservation @node T = 3 f(obs)
+    @test_throws OnlineSampling.UntrackedObservation @noderun T = 3 f(obs)
 end
 
 @testset "invalid obs (curr lim)" begin
@@ -90,18 +90,18 @@ end
     end
     obs = [1.0, 2.0, 3.0]
 
-    @test_throws OnlineSampling.UntrackedObservation @node T = 3 f(obs)
+    @test_throws OnlineSampling.UntrackedObservation @noderun T = 3 f(obs)
 end
 
 @testset "bypass node signature (curr lim)" begin
     @node g(y::AbstractFloat) = y
     @node function f(obs)
         y = rand(Normal())
-        @observe (@node g(y)) obs
+        @observe (@nodecall g(y)) obs
     end
     obs = [1.0, 2.0, 3.0]
 
-    @test_throws OnlineSampling.UntrackedObservation @node T = 3 f(obs)
+    @test_throws OnlineSampling.UntrackedObservation @noderun T = 3 f(obs)
 end
 
 @testset "notinit with unsupported obs" begin
@@ -114,5 +114,5 @@ end
         y = g(x, @prev y)
     end
 
-    @node T = 3 f()
+    @noderun T = 3 f()
 end

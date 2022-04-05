@@ -10,9 +10,42 @@
     arr = Vector{Int}()
 
     # call node for 10 iterations
-    @node T = 10 counter(arr)
+    @noderun T = 10 counter(cst(arr))
 
     @test arr == collect(1:10)
+end
+
+@testset "iter counter" begin
+    @node function counter()
+        @init i = 1
+        i = (@prev i) + 1
+        return i
+    end
+
+    @test @isdefined counter
+
+    # call node for 10 iterations
+    ret = @noderun T = 10 counter()
+    @test ret == 10
+
+    iter = @nodeiter T = 10 counter()
+    @test Base.IteratorSize(typeof(iter)) == Base.HasLength()
+    @test length(iter) == 10
+    @test collect(iter) == collect(1:10)
+end
+
+@testset "iter args" begin
+    @node function counter(x)
+        return x
+    end
+
+    @test @isdefined counter
+
+    # call node for 10 iterations
+    iter = @nodeiter counter(1:10)
+    @test Base.IteratorSize(typeof(iter)) == Base.HasLength()
+    @test length(iter) == 10
+    @test collect(iter) == collect(1:10)
 end
 
 @testset "nested counter" begin
@@ -26,19 +59,20 @@ end
     @node function counter(arr)
         @init reset = false
         reset = (@prev(i) == 5)
-        i = @node reset pure_counter()
+        i = @nodecall reset pure_counter()
         push!(arr, i)
+        return i
     end
 
     @test @isdefined pure_counter
     @test @isdefined counter
 
-    # smoke test
-    @node T = 10 pure_counter()
+    arr = Vector{Int}()
+    ret = @noderun T = 10 counter(cst(arr))
+    @test ret == 5
 
     arr = Vector{Int}()
-    # call node for 10 iterations
-    @node T = 10 counter(arr)
+    @noderun T = 10 counter(cst(arr))
     @test arr == cat(collect(1:5), collect(1:5), dims = 1)
 end
 
@@ -49,7 +83,7 @@ end
         push!(arr, i)
     end
     arr = []
-    @test (@node T = 2 f(arr); arr == [true, false])
+    @test (@noderun T = 2 f(cst(arr)); arr == [true, false])
 end
 
 @testset "mutable streams" begin
@@ -60,7 +94,7 @@ end
         push!(arr, deepcopy(@prev(m)))
     end
     arr = []
-    @node T = 2 f(arr)
+    @noderun T = 2 f(cst(arr))
     @test arr[1] == [2, 2]
     @test length(arr) == 1
 end
@@ -74,7 +108,7 @@ end
         push!(arr, y)
     end
     arr = []
-    @node T = 5 f(arr)
+    @noderun T = 5 f(cst(arr))
     @test arr == vcat([0], collect(0:3))
 end
 
@@ -85,7 +119,7 @@ end
         push!(arr, @prev(y))
     end
     arr = []
-    @node T = 5 f(arr)
+    @noderun T = 5 f(cst(arr))
     @test arr == collect(0:3)
 end
 
@@ -98,7 +132,7 @@ end
         @test x isa Real
     end
     arr = []
-    @node T = 5 f(arr)
+    @noderun T = 5 f(cst(arr))
     @test arr == [0, 1, 1, 2]
 end
 
@@ -106,12 +140,12 @@ end
     @node function f()
         y = @prev(y) + 1
     end
-    @test_throws MethodError (@node T = 2 f())
+    @test_throws MethodError (@noderun T = 2 f())
 end
 
 @testset "invalid argument" begin
     @node myparticularfunction(x::Bool) = x
-    @test_throws MethodError (@node T = 1 myparticularfunction(0))
+    @test_throws MethodError (@noderun T = 1 myparticularfunction(0))
 end
 
 @testset "one line counter" begin
@@ -123,7 +157,7 @@ end
     # Due to design change, @init statements
     # are not excuted anymore on 
     # non-reset iterations
-    @test_broken (@node T = 5 f(arr))
+    @test_broken (@noderun T = 5 f(cst(arr)))
     @test_broken arr == collect(1:5)
 end
 
@@ -132,7 +166,7 @@ end
         @init x = (push!(arr, 0); 1)
     end
     arr = []
-    @node T = 5 f(arr)
+    @noderun T = 5 f(cst(arr))
     # Due to design change, @init statements
     # are not excuted anymore on 
     # non-reset iterations
@@ -146,14 +180,16 @@ end
         return x
     end
     @node function g()
-        return @node counter()
+        return @nodecall counter()
     end
     @node function f(arr)
-        x = @node g()
+        x = @nodecall g()
         push!(arr, x)
     end
 
     arr = []
-    @node T = 5 f(arr)
+    @noderun T = 5 f(cst(arr))
     @test arr == collect(1:5)
+
+    @test collect(@nodeiter T = 5 g()) == collect(1:5)
 end

@@ -31,7 +31,7 @@ macro nodeiter(args...)
 end
 
 macro noderun(args...)
-    return quote 
+    return quote
         run($(node_iter(args...)))
     end
 end

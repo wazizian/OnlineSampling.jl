@@ -37,3 +37,11 @@ function stopwalk(f, x::Expr)
 end
 # Ignore x if not an expr
 stopwalk(f, x) = x
+
+"""
+    Get LineNumberNode object for current position
+    From https://docs.julialang.org/en/v1/manual/metaprogramming/#Macro-invocation
+"""
+macro __LOCATION__()
+    return QuoteNode(__source__)
+end

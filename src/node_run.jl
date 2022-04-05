@@ -1,27 +1,31 @@
 """
     Iterator object which represents a top-level call to a node
 """
-struct NodeCall
-    f
+struct NodeCall{L<:Union{Int,Nothing}}
+    f::Any
     ctx::SamplingCtx
-    len::Union{Int,Nothing}
-    argsiter
+    len::L
+    argsiter::Any
 end
 
-Base.IteratorSize(nodecall::Type{NodeCall}) = nodecall.len == nothing ? Base.SizeUnknown() : Base.HasLenght()
+Base.IteratorSize(nodecall::Type{NodeCall{L}}) where {L} =
+    L == Nothing ? Base.SizeUnknown() : Base.HasLength()
 
-function Base.iterate(nodecall::NodeCall, state=(nothing,1,nothing))
+Base.length(nodecall::NodeCall{L}) where {L<:Int} = nodecall.len
+
+function Base.iterate(nodecall::NodeCall, state = (nothing, 1, nothing))
     prev_state, t, argsiter_state = state
     reset = t == 1
     (nodecall.len != nothing) && (t > nodecall.len) && return nothing
 
-    next_args =  reset ? Base.iterate(nodecall.argsiter) : Base.iterate(nodecall.argsiter, argsiter_state)
+    next_args =
+        reset ? Base.iterate(nodecall.argsiter) :
+        Base.iterate(nodecall.argsiter, argsiter_state)
     next_args == nothing && return nothing
 
     args_val, new_argiter_state = next_args
-    new_state, _, val = nodecall.f(prev_state, reset, nodecall.ctx, args_val)
-    return (val, (new_state, t+1, new_argiter_state))
-    end
+    new_state, _, val = nodecall.f(prev_state, reset, nodecall.ctx, args_val...)
+    return (val, (new_state, t + 1, new_argiter_state))
 end
 
 """
@@ -50,7 +54,8 @@ cst(x) = Iterators.repeated(x)
 """
 function node_iter(macro_args...)
     call = macro_args[end]
-    @capture(call, f_(args__)) || error("Improper usage of @nodeiter or @noderun with $(call)")
+    @capture(call, f_(args__)) ||
+        error("Improper usage of @nodeiter or @noderun with $(call)")
 
     # Determine if number of iterations is provided
     n_iterations_expr = :(nothing)
@@ -62,29 +67,38 @@ function node_iter(macro_args...)
         @capture(macro_arg, particles = val_) && (node_particles = val)
         @capture(macro_arg, DS = val_) && (dsval = val)
         @capture(macro_arg, BP = val_) && (bpval = val)
-        @capture(macro_arg, iter = val_) && (iterable = val)
     end
 
     if node_particles != :(0)
-        smc_call =
-        build_smc_call(Symbol("@nodeiter"), n_iterations_expr == :(nothing) ? :(nothing) : :(T = $(n_iterations_expr)), node_particles, dsval, bpval, f, args...)
+        smc_call = build_smc_call(
+            true,
+            n_iterations_expr == :(nothing) ? :(nothing) : :(T = $(n_iterations_expr)),
+            node_particles,
+            dsval,
+            bpval,
+            f,
+            args...,
+        )
         return esc(smc_call)
     end
 
     @gensym argsiter_symb len_symb
-    argsiter_expr = :(zip($(esc.args...)))
+    argsiter_expr = :(zip($(esc.(args)...)))
     argsiter_len_expr = quote
-        (Base.IteratorSize(typeof($argsiter_symb)) isa Base.HasLength) || (Base.IteratorSize(typeof($argsiter_symb)) isa Base.HasShape) ?
+        (Base.IteratorSize(typeof($argsiter_symb)) isa Base.HasLength) ||
+            (Base.IteratorSize(typeof($argsiter_symb)) isa Base.HasShape) ?
         length($argsiter_symb) : nothing
     end
 
     code = quote
-        let $argsiter_symb = $argsiter_expr, $len_symb = minimum(filter(!isnothing, ($n_iterations_expr, $argsiter_len_expr)))
+        let $argsiter_symb = $argsiter_expr,
+            $len_symb = minimum(
+                filter(!isnothing, ($(esc(n_iterations_expr)), $argsiter_len_expr)),
+            )
+
             NodeCall($(esc(f)), SamplingCtx(), $len_symb, $argsiter_symb)
         end
     end
-
-    # sh(code)
     return code
 end
 
@@ -100,14 +114,14 @@ function node_run_ir(macro_args...)
         @capture(macro_arg, full = val_) && (full = val; break)
     end
 
-    @gensym state_symb
+    @gensym state_symb i
 
-    map!(esc, args, args)
+    map!(arg -> :(first($(esc(arg)))), args, args)
     insert!(args, 1, :($(@__MODULE__).SamplingCtx()))
     insert!(args, 1, :(true))
     insert!(args, 1, :(nothing))
 
-    call = :($(esc(f))(map(first, $(args))...)
+    call = :($(esc(f))($(args...)))
     code = quote
         if $(esc(full))
             println(@macroexpand $(call))

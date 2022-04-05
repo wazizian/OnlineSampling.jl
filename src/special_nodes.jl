@@ -2,7 +2,7 @@
     Pre-defined node which iterates over an iterable
 """
 @node function iterate(iter)
-    Base.depwarn("The node iterate is deprecated", :iterate, force=true)
+    Base.depwarn("The node iterate is deprecated", :iterate, force = true)
     @init next = Base.iterate(iter)
     _, prev_state = @prev next
     next = Base.iterate(iter, prev_state)
@@ -18,13 +18,13 @@ end
     - Otherwise, iterate over `obs`.
 """
 @node function iterate_obs(obs)
-    Base.depwarn("The node iterate_obs is deprecated", :iterate_obs, force=true)
+    Base.depwarn("The node iterate_obs is deprecated", :iterate_obs, force = true)
     @nodecall _iterate_obs(obs)
 end
 
-@node _iterate_obs(obs::AbstractVector) = (@node iterate(obs)
-@node _iterate_obs(obs::AbstractArray) = @node iterate(eachslice(obs; dims = 1))
-@node _iterate_obs(obs) = @node iterate(obs)
+@node _iterate_obs(obs::AbstractVector) = @nodecall iterate(obs)
+@node _iterate_obs(obs::AbstractArray) = @nodecall iterate(eachslice(obs; dims = 1))
+@node _iterate_obs(obs) = @nodecall iterate(obs)
 
 """
     Pre-defined node which replace [@observe](@ref) calls
