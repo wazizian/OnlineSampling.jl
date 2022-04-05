@@ -15,12 +15,12 @@ dist(x::Any) = x
         x = rand(MvNormal(@prev(x), Σ))
         return x
     end
-    cloud = @node T = T particles = N DS = true f()
+    cloud = @noderun T = T particles = N DS = true f()
     samples = dropdims(rand(cloud, Nsamples); dims = 1)
     test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
     @test (pvalue(test) > 0.05) || test
 
-    cloud = @node T = T particles = N BP = true f()
+    cloud = @noderun T = T particles = N BP = true f()
     samples = dropdims(rand(cloud, Nsamples); dims = 1)
     test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
     @test (pvalue(test) > 0.05) || test
@@ -38,7 +38,7 @@ end
         return x, y
     end
     @node function hmm(obs)
-        x, y = @node model()
+        x, y = @nodecall model()
         @observe(y, obs)
         return x
     end
@@ -47,13 +47,13 @@ end
     obs = reshape(obs, (5, 1))
     @assert size(obs) == (5, 1)
 
-    smc_cloud = @node T = 5 particles = N hmm(obs)
+    smc_cloud = @noderun T = 5 particles = N hmm(eachrow(obs))
     smc_samples = dropdims(rand(smc_cloud, Nsamples); dims = 1)
 
-    ds_cloud = @node T = 5 particles = N DS = true hmm(obs)
+    ds_cloud = @noderun T = 5 particles = N DS = true hmm(eachrow(obs))
     ds_samples = dropdims(rand(ds_cloud, Nsamples); dims = 1)
 
-    bp_cloud = @node T = 5 particles = N BP = true hmm(obs)
+    bp_cloud = @noderun T = 5 particles = N BP = true hmm(eachrow(obs))
     bp_samples = dropdims(rand(bp_cloud, Nsamples); dims = 1)
 
     #@show (mean(ds_cloud), mean(bp_cloud))
@@ -98,7 +98,7 @@ end
         return x, y
     end
     @node function hmm(obs)
-        x, y = @node model()
+        x, y = @nodecall model()
         @observe(y, obs)
         return x
     end
@@ -106,13 +106,13 @@ end
     obs = randn(T, dim)
     @assert size(obs) == (T, dim)
 
-    smc_cloud = @node T = T particles = N hmm(obs)
+    smc_cloud = @noderun T = T particles = N hmm(eachrow(obs))
     smc_samples = rand(smc_cloud, Nsamples)
 
-    ds_cloud = @node T = T particles = N DS = true hmm(obs)
+    ds_cloud = @noderun T = T particles = N DS = true hmm(eachrow(obs))
     ds_samples = rand(ds_cloud, Nsamples)
 
-    bp_cloud = @node T = T particles = N BP = true hmm(obs)
+    bp_cloud = @noderun T = T particles = N BP = true hmm(eachrow(obs))
     bp_samples = rand(bp_cloud, Nsamples)
 
     # @show (mean(smc_cloud), mean(ds_cloud))

@@ -6,4 +6,4 @@ using OnlineSampling
     println(x)
 end
 
-@node T = 10 cpt()     # unfold cpt for 10 steps
+@noderun T = 10 cpt()     # unfold cpt for 10 steps

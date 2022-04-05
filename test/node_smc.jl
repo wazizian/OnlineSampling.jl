@@ -4,15 +4,15 @@
         x = @prev(x) + 1
     end
     @node function test()
-        det = @node counter()
-        smc = @node particles = 100 counter()
+        det = @nodecall counter()
+        smc = @nodecall particles = 100 counter()
 
         @test smc isa Cloud
         @test length(smc) == 100
         @test all(v -> v == det, smc)
     end
 
-    @node T = 5 test()
+    @noderun T = 5 test()
 end
 
 @testset "gaussian hmm" begin
@@ -24,19 +24,19 @@ end
         return x, y
     end
     @node function hmm(obs)
-        x, y = @node model()
+        x, y = @nodecall model()
         @observe(y, obs)
         return x
     end
     @node function main(obs)
-        x = @node particles = 1000 hmm(obs)
+        x = @nodecall particles = 1000 hmm(obs)
     end
 
     obs = Vector{Float64}(1:5)
     obs = reshape(obs, (5, 1))
     @assert size(obs) == (5, 1)
 
-    @node T = 5 main(obs)
+    @noderun T = 5 main(eachrow(obs))
 end
 
 @testset "comparison gaussian hmm" begin
@@ -51,7 +51,7 @@ end
         return x, y
     end
     @node function hmm(obs)
-        x, y = @node model()
+        x, y = @nodecall model()
         @observe(y, obs)
         return x
     end
@@ -60,7 +60,7 @@ end
     obs = reshape(obs, (5, 1))
     @assert size(obs) == (5, 1)
 
-    node_cloud = @node T = 5 particles = N hmm(obs)
+    node_cloud = @noderun T = 5 particles = N hmm(eachrow(obs))
     node_samples = dropdims(rand(node_cloud, Nsamples); dims = 1)
 
     function proposal(p::MvParticle, o)

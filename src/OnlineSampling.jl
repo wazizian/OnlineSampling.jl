@@ -51,6 +51,6 @@ include("node_run.jl")
 include("macros.jl")
 include("special_nodes.jl")
 
-export @node, @init, @prev, @observe
+export @node, @nodecall, @nodeiter, @noderun, cst, @init, @prev, @observe
 
 end

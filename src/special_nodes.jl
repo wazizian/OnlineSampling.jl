@@ -2,6 +2,7 @@
     Pre-defined node which iterates over an iterable
 """
 @node function iterate(iter)
+    Base.depwarn("The node iterate is deprecated", :iterate, force = true)
     @init next = Base.iterate(iter)
     _, prev_state = @prev next
     next = Base.iterate(iter, prev_state)
@@ -16,17 +17,21 @@ end
     - If `obs::Array{T,N}` with `N ≥ 2`, yield slices along the first dimension.
     - Otherwise, iterate over `obs`.
 """
-@node iterate_obs(obs::AbstractVector) = @node iterate(obs)
-@node iterate_obs(obs::AbstractArray) = @node iterate(eachslice(obs; dims = 1))
-@node iterate_obs(obs) = @node iterate(obs)
+@node function iterate_obs(obs)
+    Base.depwarn("The node iterate_obs is deprecated", :iterate_obs, force = true)
+    @nodecall _iterate_obs(obs)
+end
+
+@node _iterate_obs(obs::AbstractVector) = @nodecall iterate(obs)
+@node _iterate_obs(obs::AbstractArray) = @nodecall iterate(eachslice(obs; dims = 1))
+@node _iterate_obs(obs) = @nodecall iterate(obs)
 
 """
     Pre-defined node which replace [@observe](@ref) calls
-    Calls [internal_observe](@ref)
+    Calls [internal_observe](@ref) and [internal_update_loglikelihood](@ref)
 """
 @node function observe(var, obs)
-    current_obs = @node iterate_obs(obs)
-    ll = internal_observe(var, current_obs)
+    ll = internal_observe(var, obs)
     OnlineSampling.internal_update_loglikelihood(ll)
 end
 
