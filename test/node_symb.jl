@@ -3,7 +3,15 @@
     linear tracker
 """
 dist(lt::OnlineSampling.LinearTracker) = OnlineSampling.SymbInterface.dist(lt.gm, lt.id)
-dist(x::Any) = x
+dist(x::OnlineSampling.AbstractTrackedObservation) = x
+
+"""
+    Test function
+"""
+check_not_realized(lt::OnlineSampling.LinearTracker) =
+    check_not_realized(lt.gm.nodes[lt.id])
+check_not_realized(::Union{BP.Realized,DS.Realized}) = false
+check_not_realized(::Any) = true
 
 @testset "Gaussian random walk" begin
     Σ = ScalMat(1, 1.0)
@@ -40,6 +48,7 @@ end
     @node function hmm(obs)
         x, y = @nodecall model()
         @observe(y, obs)
+        @assert check_not_realized(x)
         return x
     end
 
@@ -100,6 +109,7 @@ end
     @node function hmm(obs)
         x, y = @nodecall model()
         @observe(y, obs)
+        @assert check_not_realized(x)
         return x
     end
 
