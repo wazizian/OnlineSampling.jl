@@ -58,9 +58,19 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
 
     # cannot propagate obs
     new_argtypes = map(unwrap_tracked_type, argtypes)
+
+    # workaround for Julia >= 1.7.2
+    isapplicable = ftypehasmethod(ftype, new_argtypes...)
+    isapplicable ||
+    # somthing is wrong, or Julia has given us a wrong method to compile
+    # do nothing (though the user will have a hard time debugging his or her error
+    # if it is the case)
+        return fallback(ftype, argtypes...)
+
     ir = IR(ftype, new_argtypes...)
     should_instrument(ir) ||
         return fallback(ftype, argtypes...; map_func = :unwrap_tracked_value)
+
     if is_reset_node(ir)
         ir = propagate_notinits!(ir)
     end

@@ -12,6 +12,10 @@ using OnlineSampling
 
 testdir = dirname(@__FILE__)
 
+splittedpath = splitpath(testdir)
+splittedpath[end] = "examples"
+examplesdir = joinpath(splittedpath)
+
 try
     _ = exit_on_error
 catch UndefVarError
@@ -56,5 +60,9 @@ include(joinpath(testdir, "online_smc/utils.jl"))
     end
     @testset "node symb" begin
         include(joinpath(testdir, "node_symb.jl"))
+    end
+    @testset "examples" begin
+        include(joinpath(examplesdir, "counter.jl"))
+        include(joinpath(examplesdir, "hmm.jl"))
     end
 end
