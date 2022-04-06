@@ -39,6 +39,10 @@ include("belief_propagation/Beliefpropagation.jl")
 import ..Beliefpropagation as BP
 export BP
 
+include("streaming_belief_propagation/StreamingBeliefPropagation.jl")
+import ..StreamingBeliefPropagation as SBP
+export SBP
+
 include("online_smc/OnlineSMC.jl")
 import ..OnlineSMC as SMC
 import ..OnlineSMC: Cloud, expectation
