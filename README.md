@@ -106,8 +106,8 @@ noise = 0.5
     return x, y
 end
 @node function hmm(obs)
-    x, y = @node model()  # apply model to get x, y
-    @observe(y, obs)      # assume y_t is observed with value obs_t 
+    x, y = @nodecall model()  # apply model to get x, y
+    @observe(y, obs)          # assume y_t is observed with value obs_t 
     return x
 end
 
@@ -125,10 +125,14 @@ At each step, this program prints the estimated position and the current observa
 
 ```
 $ julia --project=. examples/hmm.jl
-Last position: 99.65353886804048 expected: 100.0
+Estimated: 1.0347103786435585 Observation: 1.0
+Estimated: 1.7946457499669912 Observation: 2.0
+Estimated: 2.760280175950971 Observation: 3.0
+Estimated: 3.673951109330031 Observation: 4.0
+...
 ```
 
-## Delayed Sampling
+## Semi-symbolic algorithm
 
 The inference method used by OnlineSampling is [Delayed Sampling](https://arxiv.org/abs/1708.07787), a semi-symbolic algorithm which tries to analytically compute closed-form solutions as much as possible, and falls back to a particle filter when symbolic computations fail.
 

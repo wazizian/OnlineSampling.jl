@@ -20,7 +20,7 @@ CdMvNormal(
 ) where {Linear<:AbstractArray,Mean,Cov<:AbstractArray} =
     CdMvNormal(Array(linear), μ, PDMat(Array(Σ)))
 
-(cd::CdMvNormal)() = MvNormal(cd.linear * cd.μ, cd.Σ)
+(cd::CdMvNormal)() = MvNormal(cd.μ, cd.Σ)
 (cd::CdMvNormal)(parent::AbstractVector) = MvNormal(cd.linear * parent + cd.μ, cd.Σ)
 (cd::CdMvNormal)(parent::MvNormal) =
     MvNormal(cd.linear * parent.μ + cd.μ, X_A_Xt(parent.Σ, cd.linear) + cd.Σ)
