@@ -92,16 +92,15 @@ end
 """
     Build a call to the SMC as a node call
 """
-function build_smc_call(toplevel, marg, node_particles, dsval, bpval, f, args...;)
+function build_smc_call(toplevel, marg, node_particles, algo, f, args...;)
     macrosymb = toplevel ? Symbol("@nodeiter") : Symbol("@nodecall")
     wrap_func = toplevel ? :($(@__MODULE__).cst) : :(identity)
-    (dsval != :(false)) &&
-        (bpval != :(false)) &&
-        error("DS and BP symbolic inference cannot be both enabled")
-    symbval = if dsval != :(false)
-        :($(dsval) ? $(@__MODULE__).DSOnCtx : $(@__MODULE__).OffCtx)
+    symbval = if (algo == :(delayed_sampling))
+        :($(@__MODULE__).DSOnCtx)
+    elseif (algo == :(belief_propagation))
+        :($(@__MODULE__).BPOnCtx)
     else
-        :($(bpval) ? $(@__MODULE__).BPOnCtx : $(@__MODULE__).OffCtx)
+        :($(@__MODULE__).OffCtx)
     end
     return Expr(
         :macrocall,
@@ -132,22 +131,20 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
     return prewalk(body) do ex
         @capture(ex, @nodecall margs__ f_(args__)) || return ex
         node_particles = :(0)
-        reset_cond = dsval = bpval = :(false)
+        reset_cond = :(false)
+        algo = :(particle_filter)
         for marg in margs
             if @capture(marg, particles = val_)
                 node_particles = val
-            elseif @capture(marg, DS = val_)
-                dsval = val
-            elseif @capture(marg, BP = val_)
-                bpval = val
+            elseif @capture(marg, algo = val_)
+                algo = val
             else
                 reset_cond = marg
             end
         end
 
         if node_particles != :(0)
-            smc_call =
-                build_smc_call(false, reset_cond, node_particles, dsval, bpval, f, args...)
+            smc_call = build_smc_call(false, reset_cond, node_particles, algo, f, args...)
             return quote
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here
