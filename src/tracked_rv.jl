@@ -44,8 +44,8 @@ end
     Tracker for vector-valued r.v. which authorizes linear transformations
 """
 struct LinearTracker{
-    G<:GraphicalModel,
     T<:AbstractVector,
+    G<:GraphicalModel,
     Linear<:AbstractMatrix,
     D<:Distribution{Multivariate,Continuous},
 } <: AbstractTrackedRV{T,Multivariate,Continuous,D}
@@ -56,13 +56,13 @@ struct LinearTracker{
 end
 
 ConstructionBase.constructorof(
-    ::Type{LinearTracker{G,T,Linear,D}},
+    ::Type{LinearTracker{T,G,Linear,D}},
 ) where {
-    G<:GraphicalModel,
     T<:AbstractVector,
+    G<:GraphicalModel,
     Linear<:AbstractMatrix,
     D<:Distribution{Multivariate,Continuous},
-} = LinearTracker{G,T,Linear,D}
+} = LinearTracker{T,G,Linear,D}
 
 """
     Pretty-printing of a linear tracker
@@ -88,7 +88,7 @@ function LinearTracker(
     T = typeof(offset)
     Linear = typeof(linear)
     D = typeof(template_d)
-    return LinearTracker{G,T,Linear,D}(gm, id, linear, offset)
+    return LinearTracker{T,G,Linear,D}(gm, id, linear, offset)
 end
 
 # Overloads
@@ -122,7 +122,7 @@ track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,Int64}) =
 """
 # TODO (api impr): clean the lines
 Distributions.MvNormal(
-    μ::LinearTracker{G,T,Linear,D},
+    μ::LinearTracker{T,G,Linear,D},
     cov,
 ) where {G<:GraphicalModel,T,Linear,D<:AbstractMvNormal} =
     (CdMvNormal(μ.linear, μ.offset, cov), μ.id)

@@ -11,6 +11,13 @@
     t = (0, y)
     @test OnlineSampling.unwrap_tracked_type(typeof(t)) == Tuple{Int64,Float64}
     @test OnlineSampling.unwrap_tracked_value(t) == (0, val)
+
+    lt = OnlineSampling.LinearTracker(
+        DS.GraphicalModel(Int64),
+        1,
+        MvNormal(zeros(1), ScalMat(1, 1.0)),
+    )
+    @test OnlineSampling.unwrap_tracked_type(typeof(lt)) == Vector{Float64}
 end
 
 @testset "dummy obs" begin
@@ -82,7 +89,59 @@ end
     @test_throws OnlineSampling.UntrackedObservation @noderun T = 3 f(obs)
 end
 
-@testset "invalid obs (curr lim)" begin
+@testset "invalid obs : atan" begin
+    @node function f(obs)
+        y = rand(IsoNormal(zeros(1), ScalMat(1, 1.0)))
+        @observe atan.(y) obs
+    end
+    obs = [[1.0], [2.0], [3.0]]
+
+    @test_throws OnlineSampling.UntrackedObservation @noderun T = 3 f(obs)
+    @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 DS = true T = 3 f(
+        obs,
+    )
+    @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 BP = true T = 3 f(
+        obs,
+    )
+end
+
+@testset "invalid obs : atan bis" begin
+    @node function f(obs)
+        y = rand(IsoNormal(zeros(1), ScalMat(1, 1.0)))
+        z = atan.(y)
+        @observe y obs
+        return z
+    end
+    obs = [[1.0], [2.0], [3.0]]
+
+    @noderun T = 3 f(obs)
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 DS = true T = 3 f(
+        obs,
+    )
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 BP = true T = 3 f(
+        obs,
+    )
+end
+
+@testset "invalid obs : collect (curr lim)" begin
+    @node function f(obs)
+        y = rand(IsoNormal(zeros(1), ScalMat(1, 1.0)))
+        c = collect(y)
+        @observe y obs
+        return c
+    end
+    obs = [[1.0], [2.0], [3.0]]
+
+    @noderun T = 3 f(obs)
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 DS = true T = 3 f(
+        obs,
+    )
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 BP = true T = 3 f(
+        obs,
+    )
+end
+
+@testset "invalid obs : type (curr lim)" begin
     g(y::AbstractFloat) = y
     @node function f(obs)
         y = rand(Normal())

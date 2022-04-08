@@ -12,6 +12,16 @@ function dist! end
 
 function dist end
 
-export initialize!, value!, rand!, observe!
+struct RealizedObservation <: Exception end
+
+function Base.showerror(io::IO, ::RealizedObservation)
+    msg = """
+          RealizedObservation exception:
+          Invalid observe statement: trying to observe a realized symbolic variable
+          """
+    print(io, msg)
+end
+
+export initialize!, value!, rand!, observe!, RealizedObservation
 
 end
