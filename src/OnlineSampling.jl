@@ -17,6 +17,13 @@ using InteractiveUtils
 
 using Reexport
 
+@enum Algorithms begin
+    particle_filter
+    delayed_sampling
+    belief_propagation
+end
+
+
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
 import ..CondDistr: CdMvNormal
@@ -51,6 +58,16 @@ include("node_run.jl")
 include("macros.jl")
 include("special_nodes.jl")
 
-export @node, @nodecall, @nodeiter, @noderun, cst, @init, @prev, @observe
+export @node,
+    @nodecall,
+    @nodeiter,
+    @noderun,
+    cst,
+    @init,
+    @prev,
+    @observe,
+    particle_filter,
+    delayed_sampling,
+    belief_propagation
 
 end

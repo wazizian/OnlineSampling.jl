@@ -12,13 +12,16 @@ noise = 0.5
     return x, y
 end
 @node function hmm(obs)
-    x, y = @nodecall model()  # apply model to get x, y
-    @observe(y, obs)      # assume y_t is observed with value obs_t 
+    x, y = @nodecall model() # apply model to get x, y
+    @observe(y, obs)         # assume y_t is observed with value obs_t 
     return x
 end
 
 steps = 100
-obs = reshape(Vector{Float64}(1:steps), (steps, 1))           # the first dim of the input must be the number of time steps
-distr = @noderun particles = 1000 hmm(eachrow(obs))  # launch the inference with 1 particles where steps is the number of time steps. 
-samples = rand(distr, 1000)                                    # sample from the posterior
-println("Last position: ", mean(samples), " expected: ", obs[steps])
+obs = reshape(Vector{Float64}(1:steps), (steps, 1)) # the first dim of the input must be the number of time steps
+dist = @nodeiter particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles (return an iterator)
+
+for (x, o) in zip(dist, obs)                                   # at each step
+    samples = rand(x, 1000)                                    # sample the 1000 values from the posterior     
+    println("Estimated: ", mean(samples), " Observation: ", o) # print the results
+end

@@ -6,7 +6,7 @@ OnlineSampling.jl is a Julia package for online Bayesian inference on reactive p
 This package provides a small domain specific language to program reactive models and a semi-symbolic inference engine based on Delayed Sampling for online Bayesian inference.
 
 Probabilistic programs are used to describe models and automatically infer latent parameters from statistical observations.
-OnlineSampling focuses on reactive models, i.e., streaming probabilistic models based on the synchronous model of execution [1].
+OnlineSampling focuses on reactive models, i.e., streaming probabilistic models based on the synchronous model of execution.
 
 Programs execute synchronously in lockstep on a global discrete logical clock.
 Inputs and outputs are data streams, programs are stream processors.
@@ -39,16 +39,21 @@ A stream function is introduced by the macro `@node`.
 Inside a `node`, the macro `@init` can be used to declare a variable as a memory.
 Another macro `@prev` can then be used to access the value of a memory variable at the previous time step.
 
+Then, the macro `@nodeiter` turns a node into a julia iterator which unfolds the execution of a node for a given number of steps and returns the current value at each step.
+Alternatively the macro `@noderun` simply executes the node for a given number of steps and returns the last computed value.
+
 For examples, the following function `cpt` implements a simple counter incremented at each step.
 
 ```julia
 @node function cpt()   # declare a stream processor
     @init x = 0        # initialize a memory x with value 0
     x = @prev(x) + 1   # at each step increment x
-    println(x)
+    return x
 end
 
-@node T = 10 cpt()     # unfold cpt for 10 steps
+for x in @nodeiter T = 10 cpt() # for 10 iterations of cpt
+    println(x)                  # print the current value
+end
 ```
 
 You can run this example in the julia toplevel
@@ -101,26 +106,33 @@ noise = 0.5
     return x, y
 end
 @node function hmm(obs)
-    x, y = @node model()  # apply model to get x, y
-    @observe(y, obs)      # assume y_t is observed with value obs_t 
+    x, y = @nodecall model()  # apply model to get x, y
+    @observe(y, obs)          # assume y_t is observed with value obs_t 
     return x
 end
 
 steps = 100
 obs = reshape(Vector{Float64}(1:steps), (steps, 1))  # the first dim of the input must be the number of time steps
-dist = @node T = steps particles = 1 hmm(obs)        # launch the inference with 1 particles where steps is the number of time steps. 
-samples = rand(dist, 1000)                           # sample from the posterior
-println("Last position: ", mean(samples), " expected: ", obs[steps])
+dist = @nodeiter particles = 1000 hmm(eachrow(obs))    # launch the inference with 1000 particles (return an iterator)
+
+for (x, o) in zip(dist, obs)                                      # at each step
+    samples = rand(x, 1000)                                       # sample the 1000 values from the posterior     
+    println("Estimated: ", mean(samples), " Observation: ", o)    # print the results
+end
 ```
 
-This program print the last estimated position after 100 steps, where at time $i$, the observation is `i`.
+At each step, this program prints the estimated position and the current observation.
 
 ```
 $ julia --project=. examples/hmm.jl
-Last position: 99.65353886804048 expected: 100.0
+Estimated: 1.0347103786435585 Observation: 1.0
+Estimated: 1.7946457499669912 Observation: 2.0
+Estimated: 2.760280175950971 Observation: 3.0
+Estimated: 3.673951109330031 Observation: 4.0
+...
 ```
 
-## Delayed Sampling
+## Semi-symbolic algorithm
 
 The inference method used by OnlineSampling is [Delayed Sampling](https://arxiv.org/abs/1708.07787), a semi-symbolic algorithm which tries to analytically compute closed-form solutions as much as possible, and falls back to a particle filter when symbolic computations fail.
 

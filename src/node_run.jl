@@ -60,13 +60,12 @@ function node_iter(macro_args...)
     # Determine if number of iterations is provided
     n_iterations_expr = :(nothing)
     node_particles = :(0)
-    dsval = bpval = :(false)
+    algo = :(particle_filter)
     iterable = :(false)
     for macro_arg in macro_args
         @capture(macro_arg, T = val_) && (n_iterations_expr = val)
         @capture(macro_arg, particles = val_) && (node_particles = val)
-        @capture(macro_arg, DS = val_) && (dsval = val)
-        @capture(macro_arg, BP = val_) && (bpval = val)
+        @capture(macro_arg, algo = val_) && (algo = val)
     end
 
     if node_particles != :(0)
@@ -74,8 +73,7 @@ function node_iter(macro_args...)
             true,
             n_iterations_expr == :(nothing) ? :(nothing) : :(T = $(n_iterations_expr)),
             node_particles,
-            dsval,
-            bpval,
+            algo,
             f,
             args...,
         )
