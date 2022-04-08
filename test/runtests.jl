@@ -64,5 +64,6 @@ include(joinpath(testdir, "online_smc/utils.jl"))
     @testset "examples" begin
         include(joinpath(examplesdir, "counter.jl"))
         include(joinpath(examplesdir, "hmm.jl"))
+        include(joinpath(examplesdir, "non_linear.jl"))
     end
 end
