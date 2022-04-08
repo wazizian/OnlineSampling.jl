@@ -8,6 +8,7 @@ using Accessors
 using Chain
 
 import ..SymbInterface: initialize!, value!, rand!, observe!, dist!, dist
+using ..SymbInterface: RealizedObservation
 
 using ..CondDistr
 

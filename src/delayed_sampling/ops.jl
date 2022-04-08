@@ -135,6 +135,8 @@ function retract!(gm::GraphicalModel, node::Marginalized)
     return updated(gm, node)
 end
 
+observe!(::GraphicalModel, ::Realized, ::AbstractArray) = throw(RealizedObservation())
+
 function observe!(gm::GraphicalModel, node::AbstractNode, value::AbstractArray)
     marginalized_node = dist!(gm, node)
     ll = logpdf(marginalized_node.d, value)

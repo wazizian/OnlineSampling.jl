@@ -41,6 +41,8 @@ function dist!(gm::GraphicalModel, node::Union{Marginalized,Realized})
     node.d
 end
 
+observe!(::GraphicalModel, ::Realized, ::AbstractArray) = throw(RealizedObservation())
+
 function observe!(gm::GraphicalModel, node::Marginalized, value::AbstractArray)
     new_node = Realized(node.id, value)
     set!(gm, new_node)
