@@ -23,12 +23,12 @@ check_not_realized(::Any) = true
         x = rand(MvNormal(@prev(x), Σ))
         return x
     end
-    cloud = @noderun T = T particles = N DS = true f()
+    cloud = @noderun T = T particles = N algo=delayed_sampling f()
     samples = dropdims(rand(cloud, Nsamples); dims = 1)
     test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
     @test (pvalue(test) > 0.05) || test
 
-    cloud = @noderun T = T particles = N BP = true f()
+    cloud = @noderun T = T particles = N algo=belief_propagation f()
     samples = dropdims(rand(cloud, Nsamples); dims = 1)
     test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
     @test (pvalue(test) > 0.05) || test
@@ -59,10 +59,10 @@ end
     smc_cloud = @noderun T = 5 particles = N hmm(eachrow(obs))
     smc_samples = dropdims(rand(smc_cloud, Nsamples); dims = 1)
 
-    ds_cloud = @noderun T = 5 particles = N DS = true hmm(eachrow(obs))
+    ds_cloud = @noderun T = 5 particles = N algo=delayed_sampling hmm(eachrow(obs))
     ds_samples = dropdims(rand(ds_cloud, Nsamples); dims = 1)
 
-    bp_cloud = @noderun T = 5 particles = N BP = true hmm(eachrow(obs))
+    bp_cloud = @noderun T = 5 particles = N algo=belief_propagation hmm(eachrow(obs))
     bp_samples = dropdims(rand(bp_cloud, Nsamples); dims = 1)
 
     #@show (mean(ds_cloud), mean(bp_cloud))
@@ -119,10 +119,10 @@ end
     smc_cloud = @noderun T = T particles = N hmm(eachrow(obs))
     smc_samples = rand(smc_cloud, Nsamples)
 
-    ds_cloud = @noderun T = T particles = N DS = true hmm(eachrow(obs))
+    ds_cloud = @noderun T = T particles = N algo=delayed_sampling hmm(eachrow(obs))
     ds_samples = rand(ds_cloud, Nsamples)
 
-    bp_cloud = @noderun T = T particles = N BP = true hmm(eachrow(obs))
+    bp_cloud = @noderun T = T particles = N algo=belief_propagation hmm(eachrow(obs))
     bp_samples = rand(bp_cloud, Nsamples)
 
     # @show (mean(smc_cloud), mean(ds_cloud))
