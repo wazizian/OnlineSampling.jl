@@ -17,14 +17,6 @@ using InteractiveUtils
 
 using Reexport
 
-@enum Algorithms begin
-    particle_filter
-    delayed_sampling
-    belief_propagation
-    streaming_belief_propagation
-end
-
-
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
 import ..CondDistr: CdMvNormal

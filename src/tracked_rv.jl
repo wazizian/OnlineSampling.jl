@@ -23,7 +23,27 @@ end
 SBPOnCtx() = SBPOnCtx(SBP.GraphicalModel())
 
 const OnCtx = Union{DSOnCtx,BPOnCtx,SBPOnCtx}
-const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel, SBP.GraphicalModel}
+const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel,SBP.GraphicalModel}
+
+"""
+    Enum type to choose the inference algorithm
+"""
+@enum Algorithms begin
+    particle_filter
+    delayed_sampling
+    belief_propagation
+    streaming_belief_propagation
+end
+
+"""
+    Map algorithm to context type
+"""
+function choose_ctx_type(algo::Algorithms)
+    (algo == delayed_sampling) && return DSOnCtx
+    (algo == belief_propagation) && return BPOnCtx
+    (algo == streaming_belief_propagation) && return SBPOnCtx
+    return OffCtx
+end
 
 """
     Abstract structure describing a rv which belongs
@@ -38,7 +58,7 @@ abstract type AbstractTrackedRV{T,F,S,D<:Distribution{F,S}} <:
 """
 struct TrackedRV{T,F,S,D<:Distribution{F,S}} <: AbstractTrackedRV{T,F,S,D}
     gm::DS.GraphicalModel
-    id::Int64
+    id::Any
 end
 
 # TrackedObservation interface
@@ -51,29 +71,34 @@ end
 struct LinearTracker{
     T<:AbstractVector,
     G<:GraphicalModel,
+    I,
     Linear<:AbstractMatrix,
     D<:Distribution{Multivariate,Continuous},
 } <: AbstractTrackedRV{T,Multivariate,Continuous,D}
     gm::G
-    id::Int64
+    id::I
     linear::Linear
     offset::T
 end
 
 ConstructionBase.constructorof(
-    ::Type{LinearTracker{T,G,Linear,D}},
+    ::Type{LinearTracker{T,G,I,Linear,D}},
 ) where {
     T<:AbstractVector,
+    I,
     G<:GraphicalModel,
     Linear<:AbstractMatrix,
     D<:Distribution{Multivariate,Continuous},
-} = LinearTracker{T,G,Linear,D}
+} = LinearTracker{T,G,I,Linear,D}
 
 """
     Pretty-printing of a linear tracker
 """
 function Base.show(io::IO, lt::LinearTracker)
-    print(io, "node = $(lt.gm.nodes[lt.id]), linear = $(lt.linear), offset = $(lt.offset)")
+    print(
+        io,
+        "node = $(SymbInterface.get_node(lt.gm, lt.id)), linear = $(lt.linear), offset = $(lt.offset)",
+    )
 end
 
 """
@@ -82,18 +107,19 @@ end
 # Note that d is only used for its type and dimensions
 function LinearTracker(
     gm::GraphicalModel,
-    id::Int64,
+    id,
     template_d::Distribution{Multivariate,Continuous},
 )
     G = typeof(gm)
     dim = Base.size(template_d)[1]
     elt = Base.eltype(template_d)
     offset = zeros(elt, dim)
-    linear = Matrix{elt}(I, dim, dim)
+    linear = Matrix{elt}(LinearAlgebra.I, dim, dim)
     T = typeof(offset)
     Linear = typeof(linear)
     D = typeof(template_d)
-    return LinearTracker{T,G,Linear,D}(gm, id, linear, offset)
+    I = typeof(id)
+    return LinearTracker{T,G,I,Linear,D}(gm, id, linear, offset)
 end
 
 # Overloads
@@ -119,7 +145,7 @@ Base.size(lt::LinearTracker) = Base.size(lt.offset)
 track_rv(::GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
 track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize!(gm, d), d)
 # TODO (api impr): clean the two following lines
-track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,Int64}) =
+track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,I}) where {I} =
     LinearTracker(gm, initialize!(gm, t...), t[1]())
 
 """
@@ -127,9 +153,9 @@ track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,Int64}) =
 """
 # TODO (api impr): clean the lines
 Distributions.MvNormal(
-    μ::LinearTracker{T,G,Linear,D},
+    μ::LinearTracker{T,G,I,Linear,D},
     cov,
-) where {G<:GraphicalModel,T,Linear,D<:AbstractMvNormal} =
+) where {G<:GraphicalModel,I,T,Linear,D<:AbstractMvNormal} =
     (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
 
 """

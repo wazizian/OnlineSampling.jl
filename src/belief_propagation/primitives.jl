@@ -18,3 +18,5 @@ end
 
 get_parent(gm, node) = gm.nodes[node.parent_id]
 has_parent(gm, node) = !isnothing(node.parent_id)
+
+get_node(gm::GraphicalModel, id) = gm.nodes[id]

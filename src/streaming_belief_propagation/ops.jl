@@ -34,6 +34,8 @@ function dist!(node::Union{Marginalized,Realized})
     node.d
 end
 
+observe!(::Realized, ::AbstractArray) = throw(RealizedObservation())
+
 function observe!(node::Marginalized, value::AbstractArray)
     new_node = Realized(id(node), value)
     return logpdf(node.d, value)

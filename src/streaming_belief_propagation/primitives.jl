@@ -7,6 +7,8 @@ function get_node(ref::NodeRef)
     return ref[]
 end
 
+get_node(::GraphicalModel, ref::NodeRef) = get_node(ref)
+
 get_parent_id(node::Initialized) = node.parent_id
 
 get_parent(node::Initialized) = (get_node ∘ get_parent_id)(node)

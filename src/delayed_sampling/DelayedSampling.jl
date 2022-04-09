@@ -7,7 +7,7 @@ using LinkedLists
 using Accessors
 using Chain
 
-import ..SymbInterface: initialize!, value!, rand!, observe!, dist!, dist
+import ..SymbInterface: initialize!, value!, rand!, observe!, dist!, dist, get_node
 using ..SymbInterface: RealizedObservation
 
 using ..CondDistr
