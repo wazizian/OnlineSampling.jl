@@ -21,6 +21,7 @@ using Reexport
     particle_filter
     delayed_sampling
     belief_propagation
+    streaming_belief_propagation
 end
 
 
@@ -72,6 +73,6 @@ export @node,
     @observe,
     particle_filter,
     delayed_sampling,
-    belief_propagation
-
+    belief_propagation,
+    streaming_belief_propagation
 end

@@ -1,4 +1,5 @@
 using Test
+using Suppressor
 using Distributions
 using Random: randn
 using HypothesisTests
@@ -65,8 +66,10 @@ include(joinpath(testdir, "online_smc/utils.jl"))
         include(joinpath(testdir, "node_symb.jl"))
     end
     @testset "examples" begin
-        include(joinpath(examplesdir, "counter.jl"))
-        include(joinpath(examplesdir, "hmm.jl"))
-        include(joinpath(examplesdir, "non_linear.jl"))
+        @suppress_out begin
+            include(joinpath(examplesdir, "counter.jl"))
+            include(joinpath(examplesdir, "hmm.jl"))
+            include(joinpath(examplesdir, "non_linear.jl"))
+        end
     end
 end

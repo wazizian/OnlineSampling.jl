@@ -99,6 +99,8 @@ function build_smc_call(toplevel, marg, node_particles, algo, f, args...;)
         :($(@__MODULE__).DSOnCtx)
     elseif (algo == :(belief_propagation))
         :($(@__MODULE__).BPOnCtx)
+    elseif (algo == :(streaming_belief_propagation))
+        :($(@__MODULE__).SBPOnCtx)
     else
         :($(@__MODULE__).OffCtx)
     end

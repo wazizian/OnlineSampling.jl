@@ -17,8 +17,13 @@ struct BPOnCtx <: SamplingCtx
 end
 BPOnCtx() = BPOnCtx(BP.GraphicalModel(Int64))
 
-const OnCtx = Union{DSOnCtx,BPOnCtx}
-const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel}
+struct SBPOnCtx <: SamplingCtx
+    gm::SBP.GraphicalModel
+end
+SBPOnCtx() = SBPOnCtx(SBP.GraphicalModel())
+
+const OnCtx = Union{DSOnCtx,BPOnCtx,SBPOnCtx}
+const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel, SBP.GraphicalModel}
 
 """
     Abstract structure describing a rv which belongs
