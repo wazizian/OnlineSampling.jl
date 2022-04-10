@@ -97,12 +97,10 @@ end
     obs = [[1.0], [2.0], [3.0]]
 
     @test_throws OnlineSampling.UntrackedObservation @noderun T = 3 f(obs)
-    @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 DS = true T = 3 f(
-        obs,
-    )
-    @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 BP = true T = 3 f(
-        obs,
-    )
+    @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 algo =
+        delayed_sampling T = 3 f(obs)
+    @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 algo =
+        belief_propagation T = 3 f(obs)
 end
 
 @testset "invalid obs : atan bis" begin
@@ -115,12 +113,10 @@ end
     obs = [[1.0], [2.0], [3.0]]
 
     @noderun T = 3 f(obs)
-    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 DS = true T = 3 f(
-        obs,
-    )
-    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 BP = true T = 3 f(
-        obs,
-    )
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 algo =
+        delayed_sampling T = 3 f(obs)
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 algo =
+        belief_propagation T = 3 f(obs)
 end
 
 @testset "invalid obs : collect (curr lim)" begin
@@ -133,12 +129,10 @@ end
     obs = [[1.0], [2.0], [3.0]]
 
     @noderun T = 3 f(obs)
-    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 DS = true T = 3 f(
-        obs,
-    )
-    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 BP = true T = 3 f(
-        obs,
-    )
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 algo =
+        delayed_sampling T = 3 f(obs)
+    @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 algo =
+        belief_propagation T = 3 f(obs)
 end
 
 @testset "invalid obs : type (curr lim)" begin

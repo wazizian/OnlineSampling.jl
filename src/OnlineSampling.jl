@@ -17,13 +17,6 @@ using InteractiveUtils
 
 using Reexport
 
-@enum Algorithms begin
-    particle_filter
-    delayed_sampling
-    belief_propagation
-end
-
-
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
 import ..CondDistr: CdMvNormal
@@ -38,6 +31,10 @@ export DS
 include("belief_propagation/Beliefpropagation.jl")
 import ..Beliefpropagation as BP
 export BP
+
+include("streaming_belief_propagation/StreamingBeliefPropagation.jl")
+import ..StreamingBeliefPropagation as SBP
+export SBP
 
 include("online_smc/OnlineSMC.jl")
 import ..OnlineSMC as SMC
@@ -68,6 +65,6 @@ export @node,
     @observe,
     particle_filter,
     delayed_sampling,
-    belief_propagation
-
+    belief_propagation,
+    streaming_belief_propagation
 end

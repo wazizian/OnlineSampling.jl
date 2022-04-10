@@ -22,6 +22,8 @@ function Base.showerror(io::IO, ::RealizedObservation)
     print(io, msg)
 end
 
+function get_node(gm, id) end
+
 export initialize!, value!, rand!, observe!, RealizedObservation
 
 end

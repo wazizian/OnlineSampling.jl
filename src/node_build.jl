@@ -95,13 +95,7 @@ end
 function build_smc_call(toplevel, marg, node_particles, algo, f, args...;)
     macrosymb = toplevel ? Symbol("@nodeiter") : Symbol("@nodecall")
     wrap_func = toplevel ? :($(@__MODULE__).cst) : :(identity)
-    symbval = if (algo == :(delayed_sampling))
-        :($(@__MODULE__).DSOnCtx)
-    elseif (algo == :(belief_propagation))
-        :($(@__MODULE__).BPOnCtx)
-    else
-        :($(@__MODULE__).OffCtx)
-    end
+    symbval = :($(@__MODULE__).choose_ctx_type($algo))
     return Expr(
         :macrocall,
         macrosymb,

@@ -45,7 +45,7 @@ end
     args...,
 ) where {C<:SamplingCtx,F<:Function}
     # TODO (impr): get the return type if avaiblable ?
-    @init void_cloud = SMC.Cloud{Particle{Nothing,C,Nothing}}(nparticles)
+    @init void_cloud = SMC.Cloud{MemParticle{Nothing,C,Nothing}}(nparticles)
     @init cloud = smc_node_step(step, void_cloud, true, args...)
     cloud = smc_node_step(step, (@prev cloud), false, args...)
     return sanitize_return(cloud)

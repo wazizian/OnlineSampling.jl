@@ -22,5 +22,5 @@ end
 distr = @noderun particles = 10 filter(obs)
 samples = rand(distr, 20)
 
-distr = @noderun particles = 10 BP = true filter(obs)
+distr = @noderun particles = 10 algo = belief_propagation filter(obs)
 samples = rand(distr, 20)

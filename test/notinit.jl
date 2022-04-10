@@ -18,7 +18,7 @@
     ip(
         reset_println,
         OnlineSMC.Cloud{
-            OnlineSampling.Particle{
+            OnlineSampling.MemParticle{
                 OnlineSampling.NotInit,
                 OnlineSampling.OffCtx,
                 OnlineSampling.NotInit,

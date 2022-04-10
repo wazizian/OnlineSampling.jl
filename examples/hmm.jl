@@ -19,9 +19,9 @@ end
 
 steps = 100
 obs = reshape(Vector{Float64}(1:steps), (steps, 1)) # the first dim of the input must be the number of time steps
-dist = @nodeiter particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles (return an iterator)
+distr = @nodeiter particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles (return an iterator)
 
-for (x, o) in zip(dist, obs)                                   # at each step
+for (x, o) in zip(distr, obs)                                   # at each step
     samples = rand(x, 1000)                                    # sample the 1000 values from the posterior     
     println("Estimated: ", mean(samples), " Observation: ", o) # print the results
 end

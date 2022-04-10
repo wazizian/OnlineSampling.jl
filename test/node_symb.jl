@@ -9,9 +9,17 @@ dist(x::OnlineSampling.AbstractTrackedObservation) = x
     Test function
 """
 check_not_realized(lt::OnlineSampling.LinearTracker) =
-    check_not_realized(lt.gm.nodes[lt.id])
-check_not_realized(::Union{BP.Realized,DS.Realized}) = false
+    check_not_realized(OnlineSampling.SymbInterface.get_node(lt.gm, lt.id))
+check_not_realized(::Union{BP.Realized,DS.Realized,SBP.Realized}) = false
 check_not_realized(::Any) = true
+
+"""
+    Test function
+"""
+check_symb(::OnlineSampling.AbstractTrackedRV) = true
+check_symb(::Any) = false
+
+symb_algorithms = (delayed_sampling, belief_propagation, streaming_belief_propagation)
 
 @testset "Gaussian random walk" begin
     Σ = ScalMat(1, 1.0)
@@ -21,17 +29,15 @@ check_not_realized(::Any) = true
     @node function f()
         @init x = rand(MvNormal([0.0], Σ))
         x = rand(MvNormal(@prev(x), Σ))
+        check_symb(x)
         return x
     end
-    cloud = @noderun T = T particles = N DS = true f()
-    samples = dropdims(rand(cloud, Nsamples); dims = 1)
-    test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
-    @test (pvalue(test) > 0.05) || test
-
-    cloud = @noderun T = T particles = N BP = true f()
-    samples = dropdims(rand(cloud, Nsamples); dims = 1)
-    test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
-    @test (pvalue(test) > 0.05) || test
+    for algo in symb_algorithms
+        cloud = @noderun T = T particles = N algo = algo f()
+        samples = dropdims(rand(cloud, Nsamples); dims = 1)
+        test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
+        @test (pvalue(test) > 0.05) || @show (algo, test)
+    end
 end
 
 @testset "Comparison 1D gaussian hmm" begin
@@ -45,10 +51,11 @@ end
         y = rand(MvNormal(x, Σ))
         return x, y
     end
-    @node function hmm(obs)
+    @node function hmm(issymb, obs)
         x, y = @nodecall model()
         @observe(y, obs)
         @assert check_not_realized(x)
+        issymb && @assert check_symb(x)
         return x
     end
 
@@ -56,24 +63,23 @@ end
     obs = reshape(obs, (5, 1))
     @assert size(obs) == (5, 1)
 
-    smc_cloud = @noderun T = 5 particles = N hmm(eachrow(obs))
+    smc_cloud = @noderun T = 5 particles = N hmm(cst(false), eachrow(obs))
     smc_samples = dropdims(rand(smc_cloud, Nsamples); dims = 1)
 
-    ds_cloud = @noderun T = 5 particles = N DS = true hmm(eachrow(obs))
-    ds_samples = dropdims(rand(ds_cloud, Nsamples); dims = 1)
+    symb_clouds = [
+        (@noderun T = 5 particles = N algo = algo hmm(cst(true), eachrow(obs))) for
+        algo in symb_algorithms
+    ]
+    symb_samples =
+        [dropdims(rand(symb_cloud, Nsamples); dims = 1) for symb_cloud in symb_clouds]
 
-    bp_cloud = @noderun T = 5 particles = N BP = true hmm(eachrow(obs))
-    bp_samples = dropdims(rand(bp_cloud, Nsamples); dims = 1)
+    test = KSampleADTest(smc_samples, first(symb_samples))
+    @test (pvalue(test) > 0.05) || @show test
 
-    #@show (mean(ds_cloud), mean(bp_cloud))
-
-    #@show (cov(ds_cloud), cov(bp_cloud))
-    #
-    test = KSampleADTest(smc_samples, ds_samples)
-    @test (pvalue(test) > 0.05) || test
-
-    test = KSampleADTest(bp_samples, ds_samples)
-    @test (pvalue(test) > 0.05) || test
+    for (algo, symb_sample) in Iterators.drop(zip(symb_algorithms, symb_samples), 1)
+        test = KSampleADTest(first(symb_samples), symb_sample)
+        @test (pvalue(test) > 0.05) || @show (algo, test)
+    end
 end
 
 @testset "Comparison d-dim gaussian hmm" begin
@@ -106,35 +112,36 @@ end
 
         return x, y
     end
-    @node function hmm(obs)
+    @node function hmm(issymb, obs)
         x, y = @nodecall model()
         @observe(y, obs)
         @assert check_not_realized(x)
+        issymb && @assert check_symb(x)
         return x
     end
 
     obs = randn(T, dim)
     @assert size(obs) == (T, dim)
 
-    smc_cloud = @noderun T = T particles = N hmm(eachrow(obs))
+    smc_cloud = @noderun T = T particles = N hmm(cst(false), eachrow(obs))
     smc_samples = rand(smc_cloud, Nsamples)
 
-    ds_cloud = @noderun T = T particles = N DS = true hmm(eachrow(obs))
-    ds_samples = rand(ds_cloud, Nsamples)
-
-    bp_cloud = @noderun T = T particles = N BP = true hmm(eachrow(obs))
-    bp_samples = rand(bp_cloud, Nsamples)
-
-    # @show (mean(smc_cloud), mean(ds_cloud))
-
-    # @show (cov(smc_cloud), cov(ds_cloud))
+    symb_clouds = [
+        (@noderun T = T particles = N algo = algo hmm(cst(true), eachrow(obs))) for
+        algo in symb_algorithms
+    ]
+    symb_samples = [rand(symb_cloud, Nsamples) for symb_cloud in symb_clouds]
 
     tests = [BartlettTest, UnequalCovHotellingT2Test, EqualCovHotellingT2Test]
     for test in tests
-        result = test(smc_samples', ds_samples')
+        result = test(smc_samples', first(symb_samples)')
         @test (pvalue(result) > 0.01) || result
+    end
 
-        result = test(ds_samples', bp_samples')
-        @test (pvalue(result) > 0.05) || result
+    for (algo, symb_sample) in Iterators.drop(zip(symb_algorithms, symb_samples), 1)
+        for test in tests
+            result = test(first(symb_samples)', symb_sample')
+            @test (pvalue(result) > 0.05) || @show (algo, result)
+        end
     end
 end

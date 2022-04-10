@@ -1,11 +1,11 @@
-module DelayedSampling
+module StreamingBeliefPropagation
 
 using LinearAlgebra
 using Distributions
 using PDMats
 using LinkedLists
 using Accessors
-using Chain
+#using Chain
 
 import ..SymbInterface: initialize!, value!, rand!, observe!, dist!, dist, get_node
 using ..SymbInterface: RealizedObservation

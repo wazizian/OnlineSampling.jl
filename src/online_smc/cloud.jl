@@ -4,6 +4,7 @@
     A particle type T is assumed to satisfy the interface
         value : T -> T'
         loglikelihood : T -> Float64
+    Note : the loglikelihood method is only needed for SMC
 """
 struct Cloud{T,W<:AbstractVector{Float64},P<:AbstractVector{T}}
     logweights::W # not normalized
