@@ -113,9 +113,9 @@ end
 
 steps = 100
 obs = reshape(Vector{Float64}(1:steps), (steps, 1))  # the first dim of the input must be the number of time steps
-dist = @nodeiter particles = 1000 hmm(eachrow(obs))    # launch the inference with 1000 particles (return an iterator)
+cloud = @nodeiter particles = 1000 hmm(eachrow(obs))    # launch the inference with 1000 particles (return an iterator)
 
-for (x, o) in zip(dist, obs)                                      # at each step
+for (x, o) in zip(cloud, obs)                                      # at each step
     samples = rand(x, 1000)                                       # sample the 1000 values from the posterior     
     println("Estimated: ", mean(samples), " Observation: ", o)    # print the results
 end
@@ -134,7 +134,8 @@ Estimated: 3.673951109330031 Observation: 4.0
 
 ## Semi-symbolic algorithm
 
-The inference method used by OnlineSampling is [Delayed Sampling](https://arxiv.org/abs/1708.07787), a semi-symbolic algorithm which tries to analytically compute closed-form solutions as much as possible, and falls back to a particle filter when symbolic computations fail.
+The inference method used by OnlineSampling is a Rao-Blackwellised particle filter, a semi-symbolic algorithm which tries to analytically compute closed-form solutions as much as possible, and falls back to a particle filter when symbolic computations fail.
+For Gaussian random variables with linear relations, we implemented [belief propagation](https://en.wikipedia.org/wiki/Belief_propagation) if the factor graph is a tree. In this case, for any root $r$ of the tree on $n$ vertices, we have $p(x_1,...x_n) = p(x_r)\prod_{child \in [n] \backslash r} p(x_{child}|x_{parent})$ and belief propagation is an efficient algorithm computing these factors as required. It extends [Delayed Sampling](https://arxiv.org/abs/1708.07787) able to compute the marginals only on a single path.
 
-For instance, in the previous HMM example, Delayed Sampling is able to compute the exact solution.
-Only one particle is needed (`particles = 1` returns the same results as `particles = 1000`).
+As a result, in the previous HMM example, belief propagation is able to recover the equation of a Kalman filter and compute the exact solution and only one particle is necessary.
+
