@@ -2,8 +2,8 @@
 
 # OnlineSampling
 
-OnlineSampling.jl is a Julia package for online Bayesian inference on reactive probabilistic models.
-This package provides a small domain specific language to program reactive models and a semi-symbolic inference engine based on Delayed Sampling for online Bayesian inference.
+OnlineSampling.jl is a Julia package for online inference on reactive probabilistic models.
+This package provides a small domain specific language to program reactive models and a semi-symbolic inference engine based on belief propagation for online inference.
 
 Probabilistic programs are used to describe models and automatically infer latent parameters from statistical observations.
 OnlineSampling focuses on reactive models, i.e., streaming probabilistic models based on the synchronous model of execution.
@@ -137,7 +137,14 @@ Estimated: 3.673951109330031 Observation: 4.0
 The inference method used by OnlineSampling is a Rao-Blackwellised particle filter, a semi-symbolic algorithm which tries to analytically compute closed-form solutions as much as possible, and falls back to a particle filter when symbolic computations fail.
 For Gaussian random variables with linear relations, we implemented [belief propagation](https://en.wikipedia.org/wiki/Belief_propagation) if the factor graph is a tree. In this case, for any root $r$ of the tree on $n$ vertices, we have $p(x_1,...x_n) = p(x_r)\prod_{child \in [n] \backslash r} p(x_{child}|x_{parent})$ and belief propagation is an efficient algorithm computing these factors as required. It extends [Delayed Sampling](https://arxiv.org/abs/1708.07787) able to compute the marginals only on a single path.
 
-As a result, in the previous HMM example, belief propagation is able to recover the equation of a Kalman filter and compute the exact solution and only one particle is necessary.
+As a result, in the previous HMM example, belief propagation is able to recover the equation of a Kalman filter and compute the exact solution and only one particle is necessary as shown below (full example available [here](https://github.com/wazizian/OnlineSampling.jl/blob/main/examples/hmm.jl)) 
+
+```julia
+cloud = @noderun particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles for all observations
+
+d = dist(cloud.particles[1]) # distribution for the last state
+println("Estimated: ", mean(d), " Observation: ", last(obs))
+```
 
 ## Internals
 
