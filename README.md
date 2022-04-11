@@ -179,8 +179,8 @@ The heavy lifting to create these functions is done by a Julia macro which acts 
 
 However, some transformations are best done at a later stage of the Julia pipeline. 
 One of them is the handling of calls to `@prev` during the initial step $t = 0$.
-At this point, for any expression `e`, `@prev(e)` is undefined and all the code which depends on this call is invalidated and is not executed. 
-The precise semantic of this operation and its implementation is done at the level of Julia IR thanks to the package `ÌRTools`.
+At this point, for any expression `e`, `@prev(e)` is undefined and all the code which depends on this call is invalidated and thus is not executed. 
+To seemlessly handle the various constructs of the Julia language, the precise semantic of this operation and its implementation are done at the level of Intermediate Representation (IR) thanks to the package `ÌRTools`.
 
 ### Probabilistic programming
 
