@@ -135,9 +135,9 @@ It extends [Delayed Sampling](https://arxiv.org/abs/1708.07787) able to compute 
 As a result, in the previous HMM example, belief propagation is able to recover the equation of a Kalman filter and compute the exact solution and only one particle is necessary as shown below (full example available [here](https://github.com/wazizian/OnlineSampling.jl/blob/main/examples/hmm.jl)) 
 
 ```julia
-cloud = @noderun particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles for all observations
-d = dist(cloud.particles[1])                                               # distribution for the last state
-println("Estimated: ", mean(d), " Observation: ", last(obs))
+cloudbp = @noderun particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles for all observations
+d = dist(cloudbp.particles[1])                                               # distribution for the last state
+println("Last estimation with bp: ", mean(d), " Observation: ", last(obs))
 ```
 
 ## Internals
