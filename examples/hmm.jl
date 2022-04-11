@@ -21,6 +21,5 @@ steps = 100
 obs = reshape(Vector{Float64}(1:steps), (steps, 1)) # the first dim of the input must be the number of time steps
 cloud = @noderun particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles for all observations
 
-ctx = cloud.particles[1].mem[2].x  # all the history
-marg = OnlineSampling.BP.dist(ltx.gm, ltx.id) # distribution for the last state
-println("Estimated: ", mean(marg), " Observation: ", o) 
+d = dist(cloud.particles[1]) # distribution for the last state
+println("Estimated: ", mean(d), " Observation: ", last(obs))

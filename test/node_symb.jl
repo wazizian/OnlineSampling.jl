@@ -1,11 +1,4 @@
 """
-    Debug function: to print the actual distribution of a
-    linear tracker
-"""
-dist(lt::OnlineSampling.LinearTracker) = OnlineSampling.SymbInterface.dist(lt.gm, lt.id)
-dist(x::OnlineSampling.AbstractTrackedObservation) = x
-
-"""
     Test function
 """
 check_not_realized(lt::OnlineSampling.LinearTracker) =

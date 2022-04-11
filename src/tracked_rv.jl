@@ -47,10 +47,20 @@ end
 
 """
     Abstract structure describing a rv which belongs
-    to the Delayed Sampling graph, and which is tracked
+    to the symbolic  graph, and which is tracked
 """
 abstract type AbstractTrackedRV{T,F,S,D<:Distribution{F,S}} <:
               AbstractTrackedObservation{T,F,S,D} end
+
+"""
+    Get the distribution of a tracked rv
+"""
+function dist(rv::AbstractTrackedRV) end
+
+"""
+    Unwrap a structure by applying `dist` to tracked RVs
+"""
+unwrap_dist_tracked_value(x) = unwrap_value(AbstractTrackedRV, x; value = dist)
 
 """
     Plain tracked rv, which does not support any operation
@@ -64,6 +74,7 @@ end
 # TrackedObservation interface
 # value(trv::TrackedRV) = DS.value!(trv.gm, trv.id)
 # internal_observe(trv::TrackedRV{T}, obs::T) where {T} = DS.observe!(trv.gm, trv.id, obs)
+# dist(trv::TrackedRV) = dist(trv.gm, trv.id)
 
 """
     Tracker for vector-valued r.v. which authorizes linear transformations
@@ -135,6 +146,7 @@ value(lt::LinearTracker) = lt.linear * value!(lt.gm, lt.id) + lt.offset
 soft_value(lt::LinearTracker) = lt.linear * rand!(lt.gm, lt.id) + lt.offset
 internal_observe(lt::LinearTracker, obs) =
     observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
+dist(lt::LinearTracker) = dist(lt.gm, lt.id)
 
 Base.size(lt::LinearTracker) = Base.size(lt.offset)
 

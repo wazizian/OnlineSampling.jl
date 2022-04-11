@@ -17,13 +17,14 @@ SMC.loglikelihood(p::MemParticle) = p.loglikelihood
 """
     Particle output of the reactive program
 """
-struct RetParticle{R}
-    loglikelihood::Float64
+struct RetParticle{R,D}
     retvalue::R
+    symb::D
 end
 
 SMC.value(p::RetParticle) = p.retvalue
-SMC.loglikelihood(p::RetParticle) = p.loglikelihood
+
+dist(p::RetParticle) = p.symb
 
 """
     Given `step: M x Bool x Ctx x typesof(args)... -> M x Float x R`
@@ -54,8 +55,11 @@ end
 # Note: this a slight abuse of the cloud structure
 # since it does not have a loglikelihood method
 function sanitize_return(cloud::Cloud{P}) where {P<:MemParticle}
-    new_values = map(cloud.particles) do p
-        unwrap_soft_tracked_value(p.retvalue)
+    new_particles = map(cloud.particles) do p
+        RetParticle(
+            unwrap_soft_tracked_value(p.retvalue),
+            unwrap_dist_tracked_value(p.retvalue),
+        )
     end
-    return Cloud(cloud.logweights, new_values)
+    return Cloud(cloud.logweights, new_particles)
 end
