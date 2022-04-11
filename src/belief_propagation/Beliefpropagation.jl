@@ -16,6 +16,6 @@ include("structs.jl")
 include("primitives.jl")
 include("ops.jl")
 
-export initialize!, value!, observe!, rand!
+export initialize!, value!, observe!, rand!, dist
 
 end

@@ -24,6 +24,6 @@ end
 
 function get_node(gm, id) end
 
-export initialize!, value!, rand!, observe!, RealizedObservation
+export initialize!, value!, rand!, observe!, RealizedObservation, dist
 
 end

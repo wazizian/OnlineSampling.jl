@@ -23,6 +23,7 @@ import ..CondDistr: CdMvNormal
 
 include("symb_interface.jl")
 using .SymbInterface
+import .SymbInterface: dist
 
 include("delayed_sampling/DelayedSampling.jl")
 import ..DelayedSampling as DS
@@ -63,6 +64,7 @@ export @node,
     @init,
     @prev,
     @observe,
+    dist,
     particle_filter,
     delayed_sampling,
     belief_propagation,
