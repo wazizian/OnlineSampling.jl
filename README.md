@@ -80,7 +80,7 @@ $ julia --project=. examples/counter.jl
 
 ## Reactive Probabilistic Programming
 
-Reactive constructs `@init` and `@pre` can be mixed with probabilistic constructs to program reactive probabilistic models.
+Reactive constructs `@init` and `@prev` can be mixed with probabilistic constructs to program reactive probabilistic models.
 
 Following recent probabilistic languages (e.g., [Turing.jl](https://turing.ml/) or [Pyro](https://pyro.ai/)) in OnlineSampling, probabilistic constructs are the following:
 - `x = rand(D)` introduces a random variable `x` with the prior distribution `D`.
