@@ -46,6 +46,10 @@ function Base.showerror(io::IO, e::UntrackedObservation)
     print(io, msg)
 end
 
+# Overloads
+Base.:+(to::TrackedObservation, v::AbstractVector) = to.val + v
+Base.:+(v::AbstractVector, to::TrackedObservation) = to + v
+
 function internal_observe(val, obs)
     throw(UntrackedObservation(val, obs))
 end

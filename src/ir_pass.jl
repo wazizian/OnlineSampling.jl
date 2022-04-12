@@ -61,8 +61,9 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
 
     # workaround for Julia >= 1.7.2
     isapplicable = ftypehasmethod(ftype, new_argtypes...)
+    # @show (ftype, new_argtypes, isapplicable)
     isapplicable ||
-    # somthing is wrong, or Julia has given us a wrong method to compile
+    # something is wrong, or Julia has given us a wrong method to compile
     # do nothing (though the user will have a hard time debugging his or her error
     # if it is the case)
         return fallback(ftype, argtypes...)
