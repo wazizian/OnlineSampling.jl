@@ -66,7 +66,7 @@ function value!(node::Marginalized)
 end
 
 function value!(node::Initialized)
-    node_dist = dis!(node)
+    node_dist = dist!(node)
     val = rand(node_dist)
     new_node = Realized(id(node), val)
     return new_node, val
@@ -98,6 +98,7 @@ end
 function value!(::GraphicalModel, id)
     @debug "Value $(get_node(id))"
     _, val = value!(get_node(id))
+    return val
 end
 
 function rand!(::GraphicalModel, id)
