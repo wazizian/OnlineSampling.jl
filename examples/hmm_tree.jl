@@ -4,11 +4,11 @@ using Distributions
 using LinearAlgebra
 using OnlineSampling: value
 
-speed = 10.0
-trans1 = [5.0]
-trans_noise = 5.0
-noise = 0.5
-mult = reshape([2.0],1,1) #2.0 * I(1)
+const speed = 10.0
+const trans1 = [5.0]
+const trans_noise = 5.0
+const noise = 0.5
+const mult = reshape([2.0],1,1)
 
 @node function model()
     @init x0 = rand(MvNormal([0.0], ScalMat(1, 1000.0))) 
