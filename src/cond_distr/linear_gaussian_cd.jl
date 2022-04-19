@@ -65,7 +65,7 @@ struct CdNormal{F<:AbstractFloat} <: ConditionalDistribution{Univariate,Continuo
     σ::F
 end
 
-(cd::CdNormal)() = Normal(cd.linear * cd.μ, σ)
+(cd::CdNormal)() = Normal(cd.μ, cd.σ)
 (cd::CdNormal)(parent::AbstractFloat) = Normal(cd.linear * parent + cd.μ, cd.σ)
 (cd::CdNormal)(parent::Normal) =
     Normal(cd.linear * parent.μ + cd.μ, sqrt(cd.linear^2 * parent.σ^2 + cd.σ^2))
@@ -77,4 +77,17 @@ function condition_cd(parent::Normal, child::CdNormal)
     new_linear = cor / (child_d.σ^2)
     new_mean = parent.μ - new_linear * child_d.μ
     return CdNormal(new_linear, new_mean, new_cov)
+end
+
+struct CdBernoulli <: ConditionalDistribution{Univariate,Discrete} end
+
+(cd::CdBernoulli)(parent::AbstractFloat) = Bernoulli(parent)
+(cd::CdBernoulli)(parent::Beta) = Bernoulli(parent.α / (parent.α + parent.β))
+
+function condition(parent::Beta, child::CdBernoulli, child_val::Bool)
+    return Beta(parent.α + child_val, parent.β + (1 - child_val))
+end
+
+function condition_cd(parent::Beta, child::CdBernoulli)
+    return child(parent)
 end

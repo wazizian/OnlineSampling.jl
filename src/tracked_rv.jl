@@ -159,7 +159,8 @@ track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize
 # TODO (api impr): clean the two following lines
 track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,I}) where {I} =
     LinearTracker(gm, initialize!(gm, t...), t[1]())
-
+track_rv(gm::GraphicalModel, t::Tuple{CdBernoulli,I}) where {I} =
+    LinearTracker(gm, initialize!(gm, t...), t[1]())
 """
     Compute the conditional MvNormal distribution from a LinearTracker
 """

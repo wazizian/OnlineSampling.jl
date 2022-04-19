@@ -20,8 +20,13 @@ struct Marginalized{I<:Integer,F,S,D<:Distribution{F,S},CD<:ConditionalDistribut
 end
 
 # TODO: enforce constraints between T, N and F, S
-struct Realized{I<:Integer,F,S,A<:AbstractArray,CD<:ConditionalDistribution{F,S}} <:
-       AbstractNode{I,F,S}
+struct Realized{
+    I<:Integer,
+    F,
+    S,
+    A<:Union{Number,AbstractArray},
+    CD<:ConditionalDistribution{F,S},
+} <: AbstractNode{I,F,S}
     id::I
     parent_id::Union{I,Nothing}
     parent_child_ref::Union{ListNode{I},Nothing}
@@ -61,5 +66,5 @@ Marginalized(node::Initialized, d::Distribution) = Marginalized(
     d,
 )
 
-Realized(node::AbstractNode, val::AbstractArray) =
+Realized(node::AbstractNode, val::Union{Number,AbstractArray}) =
     Realized(node.id, node.parent_id, node.parent_child_ref, node.children, node.cd, val)

@@ -19,7 +19,7 @@ using Reexport
 
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
-import ..CondDistr: CdMvNormal
+import ..CondDistr: CdMvNormal, CdBernoulli
 
 include("symb_interface.jl")
 using .SymbInterface

@@ -35,11 +35,17 @@ include(joinpath(testdir, "online_smc/utils.jl"))
     @testset "DS simple gaussian" begin
         include(joinpath(testdir, "delayed_sampling/simple_gaussian.jl"))
     end
+    @testset "DS beta bernoulli" begin
+        include(joinpath(testdir, "delayed_sampling/beta_bernoulli.jl"))
+    end
     @testset "DS tree of gaussians" begin
         include(joinpath(testdir, "delayed_sampling/tree_gaussian.jl"))
     end
     @testset "BP simple gaussian" begin
         include(joinpath(testdir, "belief_propagation/simple_gaussian.jl"))
+    end
+    @testset "BP beta bernoulli" begin
+        include(joinpath(testdir, "belief_propagation/beta_bernoulli.jl"))
     end
     @testset "SBP simple gaussian" begin
         include(joinpath(testdir, "streaming_belief_propagation/simple_gaussian.jl"))
