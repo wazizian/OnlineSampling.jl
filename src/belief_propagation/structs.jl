@@ -10,7 +10,8 @@ struct Marginalized{I<:Integer,F,S,D<:Distribution{F,S}} <: AbstractNode{I,F,S}
     d::D
 end
 
-struct Realized{I<:Integer,F,S,A<:AbstractArray,D<:Distribution{F,S}} <: AbstractNode{I,F,S}
+struct Realized{I<:Integer,F,S,A<:Union{Number,AbstractArray},D<:Distribution{F,S}} <:
+       AbstractNode{I,F,S}
     id::I
     d::D
     val::A
