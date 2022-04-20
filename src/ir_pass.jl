@@ -29,14 +29,14 @@ end
     Error in case of uninferred global variable
 """
 function compile_error(ftype, argtypes...)
-        msg = """
-            Something is wrong: got non concrete types at compile-time
-            Non concrete types: $(filter(!isconcretetype, argtypes))
-            While compiling $(ftype) with arguments $(argtypes)
-            If you used a non-const global variable, try to remove it
-            Otherwise, please report this issue
-        """
-        error(msg)
+    msg = """
+        Something is wrong: got non concrete types at compile-time
+        Non concrete types: $(filter(!isconcretetype, argtypes))
+        While compiling $(ftype) with arguments $(argtypes)
+        If you used a non-const global variable, try to remove it
+        Otherwise, please report this issue
+    """
+    error(msg)
 end
 
 """
@@ -76,7 +76,6 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
     isapplicable = ftypehasmethod(ftype, new_argtypes...)
     if !isapplicable
         any(!isconcretetype, new_argtypes) && return compile_error(ftype, new_argtypes...)
-        return compile_error(ftype, new_argtypes)
         return fallback(ftype, argtypes...; map_func = :unwrap_tracked_value)
     end
 
