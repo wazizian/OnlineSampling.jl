@@ -70,6 +70,7 @@ include(joinpath(testdir, "online_smc/utils.jl"))
             include(joinpath(examplesdir, "counter.jl"))
             include(joinpath(examplesdir, "hmm.jl"))
             include(joinpath(examplesdir, "non_linear.jl"))
+            include(joinpath(examplesdir, "hmm_tree.jl"))
         end
     end
 end

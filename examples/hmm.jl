@@ -2,8 +2,8 @@ using OnlineSampling
 using PDMats
 using Distributions
 
-speed = 1.0
-noise = 0.5
+const speed = 1.0
+const noise = 0.5
 
 @node function model()
     @init x = rand(MvNormal([0.0], ScalMat(1, 1000.0))) # x_0 ~ N(0, 1000)

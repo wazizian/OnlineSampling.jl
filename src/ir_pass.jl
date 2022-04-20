@@ -26,6 +26,20 @@ function fallback(args...; map_func = nothing, mod = @__MODULE__)
 end
 
 """
+    Error in case of uninferred global variable
+"""
+function compile_error(ftype, argtypes...)
+    msg = """
+        Something is wrong: got non concrete types at compile-time
+        Non concrete types: $(filter(!isconcretetype, argtypes))
+        While compiling $(ftype) with arguments $(argtypes)
+        If you used a non-const global variable, try to remove it
+        Otherwise, please report this issue
+    """
+    error(msg)
+end
+
+"""
     Determine whether we should instrument this ir
 """
 should_instrument(::Nothing) = false
@@ -59,13 +73,11 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
     # cannot propagate obs
     new_argtypes = map(unwrap_tracked_type, argtypes)
 
-    # workaround for Julia >= 1.7.2
     isapplicable = ftypehasmethod(ftype, new_argtypes...)
-    isapplicable ||
-    # somthing is wrong, or Julia has given us a wrong method to compile
-    # do nothing (though the user will have a hard time debugging his or her error
-    # if it is the case)
-        return fallback(ftype, argtypes...)
+    if !isapplicable
+        any(!isconcretetype, new_argtypes) && return compile_error(ftype, new_argtypes...)
+        return fallback(ftype, argtypes...; map_func = :unwrap_tracked_value)
+    end
 
     ir = IR(ftype, new_argtypes...)
     should_instrument(ir) ||
