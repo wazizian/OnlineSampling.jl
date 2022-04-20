@@ -46,7 +46,6 @@ function Base.showerror(io::IO, e::UntrackedObservation)
     print(io, msg)
 end
 
-
 function internal_observe(val, obs)
     throw(UntrackedObservation(val, obs))
 end
