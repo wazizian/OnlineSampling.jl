@@ -4,7 +4,7 @@ using Distributions
 using LinearAlgebra
 using OnlineSampling: value
 
-const speed = 10.0
+const speed_tree = 10.0
 const trans1 = [5.0]
 const trans_noise = 5.0
 const noise = 0.5

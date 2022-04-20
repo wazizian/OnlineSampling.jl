@@ -65,9 +65,6 @@ include(joinpath(testdir, "online_smc/utils.jl"))
     @testset "node symb" begin
         include(joinpath(testdir, "node_symb.jl"))
     end
-    @testset "IR pass" begin
-        include(joinpath(testdir, "irtests.jl"))
-    end
     @testset "examples" begin
         @suppress_out begin
             include(joinpath(examplesdir, "counter.jl"))
