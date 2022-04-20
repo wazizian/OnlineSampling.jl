@@ -1,8 +1,7 @@
 ![tests](https://github.com/wazizian/OnlineSampling.jl/actions/workflows/test.yml/badge.svg?branch=main)
 
 # OnlineSampling
-
-OnlineSampling.jl is a Julia package for online inference on reactive probabilistic models.
+OnlineSampling.jl is a Julia package for online inference on reactive probabilistic models inspired by [ProbZelus](https://github.com/IBM/probzelus).
 This package provides a small domain specific language to program reactive models and a semi-symbolic inference engine based on belief propagation to perform online Bayesian inference.
 
 Probabilistic programs are used to describe models and automatically infer latent parameters from statistical observations.
