@@ -9,3 +9,11 @@ function condition_default(parent, child, child_val)
 end
 
 condition(parent, child, child_val) = condition_default(parent, child, child_val)
+
+function condition(parent::Dirac, child::ConditionalDistribution, child_val::Union{Number,AbstractArray})
+    return parent
+end
+
+function condition_cd(parent::Dirac, child::ConditionalDistribution)
+    return parent
+end
