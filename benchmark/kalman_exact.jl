@@ -1,4 +1,5 @@
-# This 
+# cmd to run this code:
+# julia --project ./benchmark/kalman_exact.jl
 using Random, Distributions
 using OnlineSampling
 using Pkg
