@@ -64,17 +64,45 @@ unwrap_dist_tracked_value(x) = unwrap_value(AbstractTrackedRV, x; value = dist)
 
 """
     Plain tracked rv, which does not support any operation
-    (unsued for now)
 """
-struct TrackedRV{T,F,S,D<:Distribution{F,S}} <: AbstractTrackedRV{T,F,S,D}
-    gm::DS.GraphicalModel
-    id::Any
+struct Tracker{T,G<:GraphicalModel, I,F,S,D<:Distribution{F,S}} <: AbstractTrackedRV{T,F,S,D}
+    gm::G
+    id::I
 end
 
-# TrackedObservation interface
-# value(trv::TrackedRV) = DS.value!(trv.gm, trv.id)
-# internal_observe(trv::TrackedRV{T}, obs::T) where {T} = DS.observe!(trv.gm, trv.id, obs)
-# dist(trv::TrackedRV) = dist(trv.gm, trv.id)
+"""
+    Constructor for Tracker to ensure interop with Accessor.jl
+"""
+ConstructionBase.constructorof(
+    ::Type{Tracker{T,G,I,F,S,D}},
+) where {
+    T,
+    G<:GraphicalModel,
+    I,
+    F,S,
+    D<:Distribution{F,S}
+} = Tracker{T,G,I,F,S,D}
+
+"""
+    Instantiate a tracker
+"""
+function Tracker(
+    gm::GraphicalModel,
+    id,
+    template_d::D
+    ) where {F, S, D<:Distribution{F, S}}
+    G = typeof(gm)
+    elt = Base.eltype(template_d)
+    T = if F == Multivariate
+        AbstractVector{elt}
+    elseif F == Matrixvariate
+        AbstractMatrix{elt}
+    else # F == Univariate
+        elt
+    end
+    I = typeof(id)
+    return Tracker{T,G,I,F,S,D}(gm, id)
+end
 
 """
     Tracker for vector-valued r.v. which authorizes linear transformations
@@ -92,6 +120,9 @@ struct LinearTracker{
     offset::T
 end
 
+"""
+    Constructor for LinearTracker to ensure interop with Accessor.jl
+"""
 ConstructionBase.constructorof(
     ::Type{LinearTracker{T,G,I,Linear,D}},
 ) where {
@@ -101,6 +132,11 @@ ConstructionBase.constructorof(
     Linear<:AbstractMatrix,
     D<:Distribution{Multivariate,Continuous},
 } = LinearTracker{T,G,I,Linear,D}
+
+# TrackedObservation interface
+value(trv::Tracker) = value!(trv.gm, trv.id)
+internal_observe(trv::Tracker{T}, obs::T) where {T} = observe!(trv.gm, trv.id, obs)
+dist(trv::Tracker) = dist(trv.gm, trv.id)
 
 """
     Pretty-printing of a linear tracker
@@ -154,22 +190,34 @@ Base.size(lt::LinearTracker) = Base.size(lt.offset)
    Determine if a r.v. should be a tracked, and by which tracker,
    and sample if needed
 """
+# Default: sample
 track_rv(::GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
+
+# Roots
 track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize!(gm, d), d)
-# TODO (api impr): clean the two following lines
+track_rv(gm::GraphicalModel, d::Beta) = Tracker(gm, initialize!(gm, d), d)
+
+# Children
 track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,I}) where {I} =
     LinearTracker(gm, initialize!(gm, t...), t[1]())
 track_rv(gm::GraphicalModel, t::Tuple{CdBernoulli,I}) where {I} =
-    LinearTracker(gm, initialize!(gm, t...), t[1]())
+    Tracker(gm, initialize!(gm, t...), t[1]())
+
 """
-    Compute the conditional MvNormal distribution from a LinearTracker
+    Get the conditional MvNormal distribution from a MvNormal LinearTracker
 """
-# TODO (api impr): clean the lines
 Distributions.MvNormal(
-    μ::LinearTracker{T,G,I,Linear,D},
+    μ::AbstractTrackedRV{T,Multivariate,Continuous,D},
     cov,
-) where {G<:GraphicalModel,I,T,Linear,D<:AbstractMvNormal} =
+) where {T<:AbstractVector, D<:AbstractMvNormal} =
     (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
+
+"""
+    Get the conditional Bernoulli distribution from a Beta Tracker
+"""
+Distributions.Bernoulli(
+    p::AbstractTrackedRV{T,Univariate,Continuous,Beta}
+) where {T<:Real} = (CdBernoulli(), p.id)
 
 """
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled

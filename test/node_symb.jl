@@ -12,6 +12,11 @@ check_not_realized(::Any) = true
 check_symb(::OnlineSampling.AbstractTrackedRV) = true
 check_symb(::Any) = false
 
+"""
+    Test function
+"""
+check_symb_not_realized(x) = check_symb(x) && check_not_realized(x)
+
 symb_algorithms = (delayed_sampling, belief_propagation, streaming_belief_propagation)
 
 @testset "Gaussian random walk" begin
@@ -138,3 +143,43 @@ end
         end
     end
 end
+
+@testset "coin flip" begin
+    N = 1000
+    T = 10
+
+    @node function model()
+        @init p = rand(Beta(10,10))
+        p = @prev(p)
+        coin = rand(Bernoulli(p))
+        return p, coin
+    end
+
+    @node function infer(issymb, obs)
+        p, coin = @nodecall model()
+        issymb && @assert check_symb_not_realized(coin)
+
+        @observe(coin, obs)
+        issymb && @assert check_symb_not_realized(p)
+
+        return p
+    end
+
+    iter = @nodeiter T=T model()
+    p_true = first(iter)[1]
+    obs = [ret[2] for ret in iter]
+    @assert size(obs) == (T,)
+
+    smc_cloud = @noderun T = T particles = N infer(cst(false), obs)
+
+    @test mean(smc_cloud) ≈ p_true
+
+    symb_clouds = [
+        (@noderun T = T particles = N algo = algo infer(cst(true), obs)) for
+        algo in symb_algorithms
+    ]
+    for (algo, cloud) in zip(symb_algorithm, symb_clouds)
+        @test mean(symb_clouds) ≈ p_true
+    end
+end
+
