@@ -25,7 +25,7 @@ function Base.iterate(nodecall::NodeCall, state = (nothing, 1, nothing))
 
     args_val, new_argiter_state = next_args
     new_state, _, val = nodecall.f(prev_state, reset, nodecall.ctx, args_val...)
-    return (val, (new_state, t + 1, new_argiter_state))
+    return (unwrap_soft_tracked_value(val), (new_state, t + 1, new_argiter_state))
 end
 
 """

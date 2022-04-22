@@ -11,7 +11,7 @@ end
 
 steps = 5
 obs_iter = @nodeiter T = steps nonlinear_model()
-obs = [OnlineSampling.value(y) for (x, y) in obs_iter]
+obs = [y for (x, y) in obs_iter]
 
 @node function filter(obs)
     x, y = @nodecall nonlinear_model()
