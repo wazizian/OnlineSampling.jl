@@ -72,5 +72,3 @@ function condition_cd(parent::Normal, child::CdNormal)
     new_mean = parent.μ - new_linear * child_d.μ
     return CdNormal(new_linear, new_mean, new_cov)
 end
-
-

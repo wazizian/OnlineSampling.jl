@@ -65,7 +65,7 @@ unwrap_dist_tracked_value(x) = unwrap_value(AbstractTrackedRV, x; value = dist)
 """
     Plain tracked rv, which does not support any operation
 """
-struct Tracker{T,G<:GraphicalModel, I,F,S,D<:Distribution{F,S}} <: AbstractTrackedRV{T,F,S,D}
+struct Tracker{T,G<:GraphicalModel,I,F,S,D<:Distribution{F,S}} <: AbstractTrackedRV{T,F,S,D}
     gm::G
     id::I
 end
@@ -75,22 +75,12 @@ end
 """
 ConstructionBase.constructorof(
     ::Type{Tracker{T,G,I,F,S,D}},
-) where {
-    T,
-    G<:GraphicalModel,
-    I,
-    F,S,
-    D<:Distribution{F,S}
-} = Tracker{T,G,I,F,S,D}
+) where {T,G<:GraphicalModel,I,F,S,D<:Distribution{F,S}} = Tracker{T,G,I,F,S,D}
 
 """
     Instantiate a tracker
 """
-function Tracker(
-    gm::GraphicalModel,
-    id,
-    template_d::D
-    ) where {F, S, D<:Distribution{F, S}}
+function Tracker(gm::GraphicalModel, id, template_d::D) where {F,S,D<:Distribution{F,S}}
     G = typeof(gm)
     elt = Base.eltype(template_d)
     T = if F == Multivariate
@@ -210,15 +200,15 @@ track_rv(gm::GraphicalModel, t::Tuple{CdBernoulli,I}) where {I} =
 Distributions.MvNormal(
     μ::AbstractTrackedRV{T,Multivariate,Continuous,D},
     cov,
-) where {T<:AbstractVector, D<:AbstractMvNormal} =
+) where {T<:AbstractVector,D<:AbstractMvNormal} =
     (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
 
 """
     Get the conditional Bernoulli distribution from a Beta Tracker
 """
 Distributions.Bernoulli(
-    p::AbstractTrackedRV{T,Univariate,Continuous,D}
-) where {T<:Real, D<:Beta} = (CdBernoulli(), p.id)
+    p::AbstractTrackedRV{T,Univariate,Continuous,D},
+) where {T<:Real,D<:Beta} = (CdBernoulli(), p.id)
 
 """
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled

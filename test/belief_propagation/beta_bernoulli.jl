@@ -42,7 +42,7 @@ end
     @test x_node.val ≈ 0.2
     @test y_node isa BP.Initialized
     @test BP.dist(gm, y_node) ≈ Bernoulli(0.2)
-    
+
     z = initialize!(gm, CdBernoulli(), x)
     logp = observe!(gm, z, true)
     z_node = gm.nodes[z]

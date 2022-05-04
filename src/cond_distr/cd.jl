@@ -10,9 +10,15 @@ end
 
 condition(parent, child, child_val) = condition_default(parent, child, child_val)
 
-condition_cd(parent, child) = error("condition_cd not implemented for parent of type $(typeof(parent)) and child of type $(typeof(child))")
+condition_cd(parent, child) = error(
+    "condition_cd not implemented for parent of type $(typeof(parent)) and child of type $(typeof(child))",
+)
 
-function condition(parent::Dirac, child::ConditionalDistribution, child_val::Union{Number,AbstractArray})
+function condition(
+    parent::Dirac,
+    child::ConditionalDistribution,
+    child_val::Union{Number,AbstractArray},
+)
     return parent
 end
 

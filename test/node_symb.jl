@@ -149,7 +149,7 @@ end
     T = 100
 
     @node function model()
-        @init p = rand(Beta(10,10))
+        @init p = rand(Beta(10, 10))
         p = @prev(p)
         coin = rand(Bernoulli(p))
         return p, coin
@@ -165,7 +165,7 @@ end
         return p
     end
 
-    iter = @nodeiter T=T model()
+    iter = @nodeiter T = T model()
     rets = collect(iter)
     p_true = rets[1][1]
     obs = [ret[2] for ret in rets]
@@ -173,14 +173,13 @@ end
 
     smc_cloud = @noderun T = T particles = N infer(cst(false), obs)
 
-    @test mean(smc_cloud) ≈ p_true atol=0.05
+    @test mean(smc_cloud) ≈ p_true atol = 0.05
 
     symb_clouds = [
         (@noderun T = T particles = N algo = algo infer(cst(true), obs)) for
         algo in symb_algorithms
     ]
     for (algo, cloud) in zip(symb_algorithms, symb_clouds)
-        @test mean(cloud) ≈ p_true atol=0.05
+        @test mean(cloud) ≈ p_true atol = 0.05
     end
 end
-

@@ -9,7 +9,17 @@ using IRTools.Inner: varmap, Variable
 using Accessors
 import Distributions
 using Distributions:
-    Distribution, Normal, MvNormal, AbstractMvNormal, Multivariate, Continuous, Univariate, Discrete, Matrixvariate, Beta, Bernoulli
+    Distribution,
+    Normal,
+    MvNormal,
+    AbstractMvNormal,
+    Multivariate,
+    Continuous,
+    Univariate,
+    Discrete,
+    Matrixvariate,
+    Beta,
+    Bernoulli
 using LinearAlgebra
 using ConstructionBase
 # For llvm code debugging

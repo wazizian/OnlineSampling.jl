@@ -67,5 +67,12 @@ Marginalized(node::Initialized, d::Distribution) = Marginalized(
     d,
 )
 
-Realized(node::AbstractNode, val::Union{Number,AbstractArray}) =
-Realized(node.id, node.parent_id, node.parent_child_ref, node.children, node.cd, val, Dirac(val))
+Realized(node::AbstractNode, val::Union{Number,AbstractArray}) = Realized(
+    node.id,
+    node.parent_id,
+    node.parent_child_ref,
+    node.children,
+    node.cd,
+    val,
+    Dirac(val),
+)
