@@ -114,7 +114,7 @@ function dist!(gm::GraphicalModel, node::Marginalized)
     end
 end
 
-dist!(gm::GraphicalModel, node::Realized) = Dirac(node.val)
+dist!(gm::GraphicalModel, node::Realized) = node
 
 function rand!(gm::GraphicalModel, node::Initialized)
     @chain node begin

@@ -1,7 +1,7 @@
 """
     Test function
 """
-check_not_realized(lt::OnlineSampling.LinearTracker) =
+check_not_realized(lt::OnlineSampling.AbstractTrackedRV) =
     check_not_realized(OnlineSampling.SymbInterface.get_node(lt.gm, lt.id))
 check_not_realized(::Union{BP.Realized,DS.Realized,SBP.Realized}) = false
 check_not_realized(::Any) = true
@@ -146,7 +146,7 @@ end
 
 @testset "coin flip" begin
     N = 1000
-    T = 10
+    T = 100
 
     @node function model()
         @init p = rand(Beta(10,10))
@@ -166,20 +166,21 @@ end
     end
 
     iter = @nodeiter T=T model()
-    p_true = first(iter)[1]
-    obs = [ret[2] for ret in iter]
+    rets = collect(iter)
+    p_true = rets[1][1]
+    obs = [ret[2] for ret in rets]
     @assert size(obs) == (T,)
 
     smc_cloud = @noderun T = T particles = N infer(cst(false), obs)
 
-    @test mean(smc_cloud) ≈ p_true
+    @test mean(smc_cloud) ≈ p_true atol=0.05
 
     symb_clouds = [
         (@noderun T = T particles = N algo = algo infer(cst(true), obs)) for
         algo in symb_algorithms
     ]
-    for (algo, cloud) in zip(symb_algorithm, symb_clouds)
-        @test mean(symb_clouds) ≈ p_true
+    for (algo, cloud) in zip(symb_algorithms, symb_clouds)
+        @test mean(cloud) ≈ p_true atol=0.05
     end
 end
 

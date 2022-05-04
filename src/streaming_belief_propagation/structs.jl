@@ -24,11 +24,11 @@ struct Marginalized{F,S,D<:Distribution{F,S}} <: AbstractNode{F,S}
     end
 end
 
-struct Realized{F,S,A<:AbstractArray,D<:Distribution{F,S}} <: AbstractNode{F,S}
+struct Realized{F,S,A<:Union{Number,AbstractArray},D<:Distribution{F,S}} <: AbstractNode{F,S}
     id::NodeRef
     d::D
     val::A
-    function Realized(id, d::D, val::A) where {F,S,A<:AbstractArray,D<:Distribution{F,S}}
+    function Realized(id, d::D, val::A) where {F,S,A<:Union{Number,AbstractArray},D<:Distribution{F,S}}
         node = new{F,S,A,D}(id, d, val)
         id[] = node
         return node

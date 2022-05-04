@@ -33,6 +33,7 @@ struct Realized{
     children::LinkedList{I}
     cd::Union{CD,Nothing}
     val::A
+    d::Dirac{A}
 end
 
 mutable struct GraphicalModel{I<:Integer}
@@ -67,4 +68,4 @@ Marginalized(node::Initialized, d::Distribution) = Marginalized(
 )
 
 Realized(node::AbstractNode, val::Union{Number,AbstractArray}) =
-    Realized(node.id, node.parent_id, node.parent_child_ref, node.children, node.cd, val)
+Realized(node.id, node.parent_id, node.parent_child_ref, node.children, node.cd, val, Dirac(val))

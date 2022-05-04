@@ -135,6 +135,7 @@ ConstructionBase.constructorof(
 
 # TrackedObservation interface
 value(trv::Tracker) = value!(trv.gm, trv.id)
+soft_value(trv::Tracker) = rand!(trv.gm, trv.id)
 internal_observe(trv::Tracker{T}, obs::T) where {T} = observe!(trv.gm, trv.id, obs)
 dist(trv::Tracker) = dist(trv.gm, trv.id)
 
@@ -216,8 +217,8 @@ Distributions.MvNormal(
     Get the conditional Bernoulli distribution from a Beta Tracker
 """
 Distributions.Bernoulli(
-    p::AbstractTrackedRV{T,Univariate,Continuous,Beta}
-) where {T<:Real} = (CdBernoulli(), p.id)
+    p::AbstractTrackedRV{T,Univariate,Continuous,D}
+) where {T<:Real, D<:Beta} = (CdBernoulli(), p.id)
 
 """
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled
