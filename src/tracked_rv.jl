@@ -193,6 +193,8 @@ track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,I}) where {I} =
     LinearTracker(gm, initialize!(gm, t...), t[1]())
 track_rv(gm::GraphicalModel, t::Tuple{CdBernoulli,I}) where {I} =
     Tracker(gm, initialize!(gm, t...), t[1]())
+track_rv(gm::GraphicalModel, t::Tuple{CdBinomial,I}) where {I} =
+    Tracker(gm, initialize!(gm, t...), t[1]())
 
 """
     Get the conditional MvNormal distribution from a MvNormal LinearTracker
@@ -214,8 +216,8 @@ Distributions.Bernoulli(
     Get the conditional Binomial distribution from a Beta Tracker
 """
 Distributions.Binomial(
-    p::AbstractTrackedRV{T,Univariate,Continuous,D},
     n,
+    p::AbstractTrackedRV{T,Univariate,Continuous,D},
 ) where {T<:Real,D<:Beta} = (CdBinomial(n), p.id)
 
 

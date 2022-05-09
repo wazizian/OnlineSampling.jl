@@ -176,10 +176,36 @@ end
     @test mean(smc_cloud) ≈ p_true atol = 0.05
 
     symb_clouds = [
-        (@noderun T = T particles = N algo = algo infer(cst(true), obs)) for
+        (@noderun T = T particles = 1 algo = algo infer(cst(true), obs)) for
         algo in symb_algorithms
     ]
     for (algo, cloud) in zip(symb_algorithms, symb_clouds)
         @test mean(cloud) ≈ p_true atol = 0.05
     end
+end
+
+@testset "Binomial samples" begin
+    # only implemented for SBP
+    n = 100
+    T = 1000
+    @node function model()
+        @init p = rand(Beta(10, 10))
+        p = @prev(p)
+        disc_rv = rand(Binomial(n,p))
+        return p, disc_rv
+    end
+
+    iter = @nodeiter T = T model()
+    rets = collect(iter)
+    p_true = rets[1][1]
+    obs = [ret[2] for ret in rets]
+
+    @node function infer(obs)
+        p, disc_rv = @nodecall model()
+        @observe(disc_rv,obs)
+        return p
+    end
+
+    symb_cloud = @noderun T = T particles = 1 algo = streaming_belief_propagation infer(obs)
+    @test mean(symb_cloud) ≈ p_true atol = 0.05
 end
