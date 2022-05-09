@@ -146,7 +146,7 @@ end
 
 @testset "coin flip" begin
     N = 1000
-    T = 100
+    T = 1000
 
     @node function model()
         @init p = rand(Beta(10, 10))
@@ -185,7 +185,6 @@ end
 end
 
 @testset "Binomial samples" begin
-    # only implemented for SBP
     n = 100
     T = 1000
     @node function model()
@@ -206,6 +205,11 @@ end
         return p
     end
 
-    symb_cloud = @noderun T = T particles = 1 algo = streaming_belief_propagation infer(obs)
-    @test mean(symb_cloud) ≈ p_true atol = 0.05
+    symb_clouds = [
+        (@noderun T = T particles = 1 algo = algo infer(obs)) for
+        algo in symb_algorithms
+    ]
+    for (algo, cloud) in zip(symb_algorithms, symb_clouds)
+        @test mean(cloud) ≈ p_true atol = 0.05
+    end
 end
