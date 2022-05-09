@@ -8,7 +8,9 @@ using Chain
 
 include("cd.jl")
 include("linear_gaussian_cd.jl")
+include("beta_cd.jl")
 
-export condition, CdMvNormal, ConditionalDistribution, DummyCD, condition_cd, jointdist
+export condition,
+    CdMvNormal, CdBernoulli, CdBinomial, ConditionalDistribution, DummyCD, condition_cd, jointdist
 
 end

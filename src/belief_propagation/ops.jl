@@ -30,7 +30,7 @@ function dist!(gm::GraphicalModel, node::Initialized)
     return node_dist
 end
 
-function realize!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
+function realize!(gm::GraphicalModel, node::Initialized, value::Union{Number,AbstractArray})
     @assert has_parent(gm, node)
     parent = get_parent(gm, node)
     parent_dist = dist!(gm, parent)
@@ -41,15 +41,20 @@ function dist!(gm::GraphicalModel, node::Union{Marginalized,Realized})
     node.d
 end
 
-observe!(::GraphicalModel, ::Realized, ::AbstractArray) = throw(RealizedObservation())
+observe!(::GraphicalModel, ::Realized, ::Union{Number,AbstractArray}) =
+    throw(RealizedObservation())
 
-function observe!(gm::GraphicalModel, node::Marginalized, value::AbstractArray)
+function observe!(
+    gm::GraphicalModel,
+    node::Marginalized,
+    value::Union{Number,AbstractArray},
+)
     new_node = Realized(node.id, value)
     set!(gm, new_node)
     return logpdf(node.d, value)
 end
 
-function observe!(gm::GraphicalModel, node::Initialized, value::AbstractArray)
+function observe!(gm::GraphicalModel, node::Initialized, value::Union{Number,AbstractArray})
     @assert has_parent(gm, node)
     parent = get_parent(gm, node)
     node_dist, new_dist_parent = realize!(gm, node, value)
@@ -127,7 +132,11 @@ function rand!(gm::GraphicalModel{I}, id::I) where {I}
     return val
 end
 
-function observe!(gm::GraphicalModel{I}, id::I, value::AbstractArray) where {I}
+function observe!(
+    gm::GraphicalModel{I},
+    id::I,
+    value::Union{Number,AbstractArray},
+) where {I}
     @debug "Observe $(gm.nodes[id]) with value $value"
     ll = observe!(gm, gm.nodes[id], value)
     return ll

@@ -23,7 +23,7 @@ function dist!(node::Initialized)
     return node_dist
 end
 
-function realize!(node::Initialized, value::AbstractArray)
+function realize!(node::Initialized, value::Union{Number,AbstractArray})
     @assert has_parent(node)
     parent = get_parent(node)
     parent_dist = dist!(parent)
@@ -36,12 +36,12 @@ end
 
 observe!(::Realized, ::AbstractArray) = throw(RealizedObservation())
 
-function observe!(node::Marginalized, value::AbstractArray)
+function observe!(node::Marginalized, value::Union{Number,AbstractArray})
     new_node = Realized(id(node), value)
     return logpdf(node.d, value)
 end
 
-function observe!(node::Initialized, value::AbstractArray)
+function observe!(node::Initialized, value::Union{Number,AbstractArray})
     @assert has_parent(node)
     parent = get_parent(node)
     node_dist, new_dist_parent = realize!(node, value)
@@ -107,7 +107,7 @@ function rand!(::GraphicalModel, id)
     return val
 end
 
-function observe!(::GraphicalModel, id, value::AbstractArray)
+function observe!(::GraphicalModel, id, value::Union{Number,AbstractArray})
     @debug "Observe $(get_node(id)) with value $value"
     ll = observe!(get_node(id), value)
     return ll

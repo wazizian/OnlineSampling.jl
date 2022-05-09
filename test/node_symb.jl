@@ -1,7 +1,7 @@
 """
     Test function
 """
-check_not_realized(lt::OnlineSampling.LinearTracker) =
+check_not_realized(lt::OnlineSampling.AbstractTrackedRV) =
     check_not_realized(OnlineSampling.SymbInterface.get_node(lt.gm, lt.id))
 check_not_realized(::Union{BP.Realized,DS.Realized,SBP.Realized}) = false
 check_not_realized(::Any) = true
@@ -11,6 +11,11 @@ check_not_realized(::Any) = true
 """
 check_symb(::OnlineSampling.AbstractTrackedRV) = true
 check_symb(::Any) = false
+
+"""
+    Test function
+"""
+check_symb_not_realized(x) = check_symb(x) && check_not_realized(x)
 
 symb_algorithms = (delayed_sampling, belief_propagation, streaming_belief_propagation)
 
@@ -136,5 +141,75 @@ end
             result = test(first(symb_samples)', symb_sample')
             @test (pvalue(result) > 0.05) || @show (algo, result)
         end
+    end
+end
+
+@testset "coin flip" begin
+    N = 1000
+    T = 1000
+
+    @node function model()
+        @init p = rand(Beta(10, 10))
+        p = @prev(p)
+        coin = rand(Bernoulli(p))
+        return p, coin
+    end
+
+    @node function infer(issymb, obs)
+        p, coin = @nodecall model()
+        issymb && @assert check_symb_not_realized(coin)
+
+        @observe(coin, obs)
+        issymb && @assert check_symb_not_realized(p)
+
+        return p
+    end
+
+    iter = @nodeiter T = T model()
+    rets = collect(iter)
+    p_true = rets[1][1]
+    obs = [ret[2] for ret in rets]
+    @assert size(obs) == (T,)
+
+    smc_cloud = @noderun T = T particles = N infer(cst(false), obs)
+
+    @test mean(smc_cloud) ≈ p_true atol = 0.05
+
+    symb_clouds = [
+        (@noderun T = T particles = 1 algo = algo infer(cst(true), obs)) for
+        algo in symb_algorithms
+    ]
+    for (algo, cloud) in zip(symb_algorithms, symb_clouds)
+        @test mean(cloud) ≈ p_true atol = 0.05
+    end
+end
+
+@testset "Binomial samples" begin
+    n = 100
+    T = 1000
+    @node function model()
+        @init p = rand(Beta(10, 10))
+        p = @prev(p)
+        disc_rv = rand(Binomial(n,p))
+        return p, disc_rv
+    end
+
+    iter = @nodeiter T = T model()
+    rets = collect(iter)
+    p_true = rets[1][1]
+    obs = [ret[2] for ret in rets]
+
+    @node function infer(obs)
+        p, disc_rv = @nodecall model()
+        @observe(disc_rv,obs)
+        return p
+    end
+
+    symb_clouds = [
+        (@noderun T = T particles = 1 algo = algo infer(obs)) for
+        algo in symb_algorithms
+    ]
+    for (algo, cloud) in zip(symb_algorithms, symb_clouds)
+        @test mean(cloud) ≈ p_true atol = 0.05
     end
 end

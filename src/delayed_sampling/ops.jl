@@ -1,4 +1,4 @@
-function realize!(gm::GraphicalModel, node::Marginalized, val::AbstractArray)
+function realize!(gm::GraphicalModel, node::Marginalized, val::Union{Number,AbstractArray})
     # Does renew node
     @chain node begin
         @aside @assert is_terminal(gm, _)
@@ -114,7 +114,7 @@ function dist!(gm::GraphicalModel, node::Marginalized)
     end
 end
 
-dist!(gm::GraphicalModel, node::Realized) = Dirac(node.val)
+dist!(gm::GraphicalModel, node::Realized) = node
 
 function rand!(gm::GraphicalModel, node::Initialized)
     @chain node begin
@@ -137,9 +137,14 @@ function retract!(gm::GraphicalModel, node::Marginalized)
     return updated(gm, node)
 end
 
-observe!(::GraphicalModel, ::Realized, ::AbstractArray) = throw(RealizedObservation())
+observe!(::GraphicalModel, ::Realized, ::Union{Number,AbstractArray}) =
+    throw(RealizedObservation())
 
-function observe!(gm::GraphicalModel, node::AbstractNode, value::AbstractArray)
+function observe!(
+    gm::GraphicalModel,
+    node::AbstractNode,
+    value::Union{Number,AbstractArray},
+)
     marginalized_node = dist!(gm, node)
     ll = logpdf(marginalized_node.d, value)
     new_node = realize!(gm, marginalized_node, value)
@@ -191,7 +196,11 @@ function rand!(gm::GraphicalModel{I}, id::I) where {I}
     return val
 end
 
-function observe!(gm::GraphicalModel{I}, id::I, value::AbstractArray) where {I}
+function observe!(
+    gm::GraphicalModel{I},
+    id::I,
+    value::Union{Number,AbstractArray},
+) where {I}
     @debug "Observe $(gm.nodes[id]) with value $value"
     _, ll = observe!(gm, gm.nodes[id], value)
     return ll

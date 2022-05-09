@@ -34,9 +34,6 @@ function condition(parent::MvNormal, child::CdMvNormal, child_val::AbstractArray
     return MvNormal(new_mean, new_cov)
 end
 
-function condition(parent::Dirac, child::CdMvNormal, child_val::AbstractArray)
-    return parent
-end
 
 function condition_cd(parent::MvNormal, child::CdMvNormal)
     child_d = child(parent)
@@ -47,9 +44,6 @@ function condition_cd(parent::MvNormal, child::CdMvNormal)
     return CdMvNormal(linear, new_mean, new_cov)
 end
 
-function condition_cd(parent::Dirac, child::CdMvNormal)
-    return parent
-end
 
 function jointdist(parent::MvNormal, child::CdMvNormal)
     child_d = child(parent)
@@ -65,7 +59,7 @@ struct CdNormal{F<:AbstractFloat} <: ConditionalDistribution{Univariate,Continuo
     σ::F
 end
 
-(cd::CdNormal)() = Normal(cd.linear * cd.μ, σ)
+(cd::CdNormal)() = Normal(cd.μ, cd.σ)
 (cd::CdNormal)(parent::AbstractFloat) = Normal(cd.linear * parent + cd.μ, cd.σ)
 (cd::CdNormal)(parent::Normal) =
     Normal(cd.linear * parent.μ + cd.μ, sqrt(cd.linear^2 * parent.σ^2 + cd.σ^2))

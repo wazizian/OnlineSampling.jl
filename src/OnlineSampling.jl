@@ -9,7 +9,19 @@ using IRTools.Inner: varmap, Variable
 using Accessors
 import Distributions
 using Distributions:
-    Distribution, Normal, MvNormal, AbstractMvNormal, Multivariate, Continuous
+    Distribution,
+    Normal,
+    MvNormal,
+    AbstractMvNormal,
+    Multivariate,
+    Continuous,
+    Univariate,
+    Discrete,
+    Matrixvariate,
+    Beta,
+    Bernoulli,
+    Binomial,
+    BetaBinomial
 using LinearAlgebra
 using ConstructionBase
 # For llvm code debugging
@@ -19,7 +31,7 @@ using Reexport
 
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
-import ..CondDistr: CdMvNormal
+import ..CondDistr: CdMvNormal, CdBernoulli, CdBinomial
 
 include("symb_interface.jl")
 using .SymbInterface
