@@ -19,7 +19,9 @@ using Distributions:
     Discrete,
     Matrixvariate,
     Beta,
-    Bernoulli
+    Bernoulli,
+    Binomial,
+    BetaBinomial
 using LinearAlgebra
 using ConstructionBase
 # For llvm code debugging
@@ -29,7 +31,7 @@ using Reexport
 
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
-import ..CondDistr: CdMvNormal, CdBernoulli
+import ..CondDistr: CdMvNormal, CdBernoulli, CdBinomial
 
 include("symb_interface.jl")
 using .SymbInterface

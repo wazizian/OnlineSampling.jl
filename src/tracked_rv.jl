@@ -211,6 +211,15 @@ Distributions.Bernoulli(
 ) where {T<:Real,D<:Beta} = (CdBernoulli(), p.id)
 
 """
+    Get the conditional Binomial distribution from a Beta Tracker
+"""
+Distributions.Binomial(
+    p::AbstractTrackedRV{T,Univariate,Continuous,D},
+    n,
+) where {T<:Real,D<:Beta} = (CdBinomial(n), p.id)
+
+
+"""
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled
 """
 internal_rand(::OffCtx, d::Distribution) = TrackedObservation(rand(d), d)
