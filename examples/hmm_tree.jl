@@ -21,8 +21,8 @@ end
 
 steps = 2
 trajectory = @nodeiter T = steps model()
-obs_y1 = [value(t[end-1]) for t in trajectory]
-obs_y2 = [value(t[end]) for t in trajectory]
+obs_y1 = [t[end-1] for t in trajectory]
+obs_y2 = [t[end] for t in trajectory]
 
 @node function hmm(obs1, obs2)
     x0,x1,x2, y1,y2 = @nodecall model() 
