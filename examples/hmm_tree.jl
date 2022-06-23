@@ -11,7 +11,7 @@ const mult = reshape([2.0],1,1)
 
 @node function model()
     @init x0 = rand(MvNormal([0.0], ScalMat(1, 1000.0))) 
-    x0 = rand(MvNormal(@prev(x0), ScalMat(1, speed)))
+    x0 = rand(MvNormal(@prev(x0), ScalMat(1, speed_tree)))
     x1 = rand(MvNormal(x0 + trans1 , ScalMat(1, trans_noise)))
     x2 = rand(MvNormal(mult * x0, ScalMat(1, trans_noise)))
     y1 = rand(MvNormal(x1, ScalMat(1, noise)))
@@ -21,8 +21,8 @@ end
 
 steps = 2
 trajectory = @nodeiter T = steps model()
-obs_y1 = [value(t[end-1]) for t in trajectory]
-obs_y2 = [value(t[end]) for t in trajectory]
+obs_y1 = [t[end-1] for t in trajectory]
+obs_y2 = [t[end] for t in trajectory]
 
 @node function hmm(obs1, obs2)
     x0,x1,x2, y1,y2 = @nodecall model() 

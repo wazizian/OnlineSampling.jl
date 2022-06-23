@@ -173,7 +173,10 @@ value(lt::LinearTracker) = lt.linear * value!(lt.gm, lt.id) + lt.offset
 soft_value(lt::LinearTracker) = lt.linear * rand!(lt.gm, lt.id) + lt.offset
 internal_observe(lt::LinearTracker, obs) =
     observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
-dist(lt::LinearTracker) = dist(lt.gm, lt.id)
+function dist(lt::LinearTracker)
+    node_dist = dist(lt.gm, lt.id)
+    return MvNormal(lt.linear * node_dist.μ + lt.offset, X_A_Xt(node_dist.Σ, lt.linear))
+end
 
 Base.size(lt::LinearTracker) = Base.size(lt.offset)
 

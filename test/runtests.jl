@@ -56,6 +56,9 @@ include(joinpath(testdir, "online_smc/utils.jl"))
     @testset "SBP beta binomial" begin
         include(joinpath(testdir, "streaming_belief_propagation/beta_binomial.jl"))
     end
+    @testset "SBP tracker" begin
+        include(joinpath(testdir, "streaming_belief_propagation/track_rv.jl"))
+    end
     @testset "online smc" begin
         include(joinpath(testdir, "online_smc/simple_gaussian.jl"))
     end
