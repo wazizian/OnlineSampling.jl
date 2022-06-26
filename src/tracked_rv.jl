@@ -175,7 +175,7 @@ internal_observe(lt::LinearTracker, obs) =
     observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
 function dist(lt::LinearTracker)
     node_dist = dist(lt.gm, lt.id)
-    return MvNormal(lt.linear * node_dist.μ + lt.offset, X_A_Xt(node_dist.Σ, lt.linear))
+    return lt.linear * node_dist + lt.offset
 end
 
 Base.size(lt::LinearTracker) = Base.size(lt.offset)
