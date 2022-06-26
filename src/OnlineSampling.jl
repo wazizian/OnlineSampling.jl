@@ -23,6 +23,7 @@ using Distributions:
     Binomial,
     BetaBinomial
 using LinearAlgebra
+using PDMats
 using ConstructionBase
 # For llvm code debugging
 using InteractiveUtils
