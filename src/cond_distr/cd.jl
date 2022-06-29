@@ -25,3 +25,7 @@ end
 function condition_cd(parent::Dirac, child::ConditionalDistribution)
     return parent
 end
+
+Base.:*(A::AbstractMatrix, d::Dirac) = A*d.value
+Base.:+(d::Dirac, v::AbstractVector) = d.value + v
+Base.:+(v::AbstractVector, d::Dirac) = d+v
