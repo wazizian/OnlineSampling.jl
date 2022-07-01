@@ -206,7 +206,7 @@ function ScalarLinearTracker(
     Linear = Number
     D = typeof(template_d)
     I = typeof(id)
-    return LinearTracker{T,G,I,Linear,D}(gm, id, linear, offset)
+    return ScalarLinearTracker{T,G,I,Linear,D}(gm, id, linear, offset)
 end
 
 # Overloads
