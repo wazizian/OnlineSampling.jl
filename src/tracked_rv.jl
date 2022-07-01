@@ -254,7 +254,7 @@ track_rv(::GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
 
 # Roots
 track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize!(gm, d), d)
-track_rv(gm::GraphicalModel, d::AbstractNormal) =
+track_rv(gm::GraphicalModel, d::Normal) =
     ScalarLinearTracker(gm, initialize!(gm, d), d)
 track_rv(gm::GraphicalModel, d::Beta) = Tracker(gm, initialize!(gm, d), d)
 
@@ -283,7 +283,7 @@ Distributions.MvNormal(
 Distributions.Normal(
     μ::AbstractTrackedRV{T,Univariate,Continuous,D},
     σ,
-) where {T<:Number,D<:AbstractNormal} = (CdNormal(μ.linear, μ.offset, σ), μ.id)
+) where {T<:Number,D<:Normal} = (CdNormal(μ.linear, μ.offset, σ), μ.id)
 
 """
     Get the conditional Bernoulli distribution from a Beta Tracker
