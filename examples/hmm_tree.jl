@@ -7,15 +7,15 @@ const speed_tree = 10.0
 const trans1 = [5.0]
 const trans_noise = 5.0
 const noise = 0.5
-const mult = reshape([2.0],1,1)
+const mult = reshape([2.0], 1, 1)
 
 @node function model()
-    @init x0 = rand(MvNormal([0.0], ScalMat(1, 1000.0))) 
+    @init x0 = rand(MvNormal([0.0], ScalMat(1, 1000.0)))
     x0 = rand(MvNormal(@prev(x0), ScalMat(1, speed_tree)))
-    x1 = rand(MvNormal(x0 + trans1 , ScalMat(1, trans_noise)))
+    x1 = rand(MvNormal(x0 + trans1, ScalMat(1, trans_noise)))
     x2 = rand(MvNormal(mult * x0, ScalMat(1, trans_noise)))
     y1 = rand(MvNormal(x1, ScalMat(1, noise)))
-    y2 = rand(MvNormal(x2, ScalMat(1, noise)))            
+    y2 = rand(MvNormal(x2, ScalMat(1, noise)))
     return x0, x1, x2, y1, y2
 end
 
@@ -25,13 +25,13 @@ obs_y1 = [t[end-1] for t in trajectory]
 obs_y2 = [t[end] for t in trajectory]
 
 @node function hmm(obs1, obs2)
-    x0,x1,x2, y1,y2 = @nodecall model() 
-    @observe(y1, obs1)         
-    @observe(y2, obs2) 
+    x0, x1, x2, y1, y2 = @nodecall model()
+    @observe(y1, obs1)
+    @observe(y2, obs2)
     return x0, x1, x2
 end
 
-cloud = @noderun particles = 1 hmm(obs_y1,obs_y2)
+cloud = @noderun particles = 1 hmm(obs_y1, obs_y2)
 #cloudds = @noderun particles = 1 algo = delayed_sampling hmm(eachrow(obs),eachrow(obs)) #not working
 cloudbp = @noderun particles = 1 algo = belief_propagation hmm(obs_y1, obs_y2)
 dbp = dist(cloudbp.particles[1])

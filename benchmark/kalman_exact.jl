@@ -16,17 +16,17 @@ using Statistics
 # We create model using GraphPPL.jl package interface with @model macro
 # For simplicity of the example we consider all matrices to be known and constant
 @model function linear_gaussian_ssm_filtering(A, B, P, Q)
-    
+
     # Priors for the previous x_t-1 step
     x_min_t_mean = datavar(Vector{Float64})
-    x_min_t_cov  = datavar(Matrix{Float64})
-    
+    x_min_t_cov = datavar(Matrix{Float64})
+
     x_min_t ~ MvGaussianMeanCovariance(x_min_t_mean, x_min_t_cov)
-    x_t     ~ MvGaussianMeanCovariance(A * x_min_t, P)
-    
+    x_t ~ MvGaussianMeanCovariance(A * x_min_t, P)
+
     y_t = datavar(Vector{Float64})
     y_t ~ MvGaussianMeanCovariance(B * x_t, Q)
-    
+
     return x_min_t_mean, x_min_t_cov, x_t, y_t
 end
 
@@ -34,52 +34,55 @@ function generate_data(n, A, B, P, Q; seed = 1234)
     Random.seed!(seed)
 
     x_prev = zeros(2)
-    x      = Vector{Vector{Float64}}(undef, n)
-    y      = Vector{Vector{Float64}}(undef, n)
+    x = Vector{Vector{Float64}}(undef, n)
+    y = Vector{Vector{Float64}}(undef, n)
 
-    for i in 1:n
-        x[i]   = rand(MvNormal(A * x_prev, P))
-        y[i]   = rand(MvNormal(B * x[i], Q))
+    for i = 1:n
+        x[i] = rand(MvNormal(A * x_prev, P))
+        y[i] = rand(MvNormal(B * x[i], Q))
         x_prev = x[i]
     end
-   
+
     return x, y
 end
 
 n = 1000
 θ = π / 30
-A = [ cos(θ) -sin(θ); sin(θ) cos(θ) ]
-B = [ 1.3 0.0; 0.0 0.7 ]
-P = [ 0.1 0.0; 0.0 0.1 ]
-Q = [ 10.0 0.0; 0.0 10.0 ]
+A = [cos(θ) -sin(θ); sin(θ) cos(θ)]
+B = [1.3 0.0; 0.0 0.7]
+P = [0.1 0.0; 0.0 0.1]
+Q = [10.0 0.0; 0.0 10.0]
 
 real_x, real_y = generate_data(n, A, B, P, Q);
 
 # Inference procedure for single time step graph and filtering
 function reactivemp_inference_filtering(observations, A, B, P, Q)
-    n = length(observations) 
-    
+    n = length(observations)
+
     model, (x_min_t_mean, x_min_t_cov, x_t, y_t) = linear_gaussian_ssm_filtering(A, B, P, Q)
-    
+
     xbuffer = keep(Marginal)
-    
-    redirect_to_prior_subscription = subscribe!(getmarginal(x_t), (x_t_posterior) -> begin
-        update!(x_min_t_mean, mean(x_t_posterior))
-        update!(x_min_t_cov, cov(x_t_posterior))    
-    end)
-    
+
+    redirect_to_prior_subscription = subscribe!(
+        getmarginal(x_t),
+        (x_t_posterior) -> begin
+            update!(x_min_t_mean, mean(x_t_posterior))
+            update!(x_min_t_cov, cov(x_t_posterior))
+        end,
+    )
+
     xsubscription = subscribe!(getmarginal(x_t), xbuffer)
-    
-    update!(x_min_t_mean, [ 0.0, 0.0 ])
-    update!(x_min_t_cov, [ 100.0 0.0; 0.0 100.0 ])
-    
+
+    update!(x_min_t_mean, [0.0, 0.0])
+    update!(x_min_t_cov, [100.0 0.0; 0.0 100.0])
+
     for observation in observations
         update!(y_t, observation)
     end
-    
+
     unsubscribe!(xsubscription)
     unsubscribe!(redirect_to_prior_subscription)
-    
+
     return getvalues(xbuffer)
 end
 
@@ -104,15 +107,15 @@ x_reactivemp_filtering_inferred = reactivemp_inference_filtering(real_y, A, B, P
 
 # taken from https://github.com/mschauer/Kalman.jl
 function kalman_filtering(obs, A, B, P, Q)
-    x0 = [ 0.0, 0.0 ]
+    x0 = [0.0, 0.0]
     P0 = Matrix(100.0I, 2, 2)
     p = Gaussian(x0, P0)
     ps = [] # vector of filtered Gaussians
     n = length(obs)
-    for i in 1:n
+    for i = 1:n
         #global p
         # predict
-        p = A*p ⊕ Gaussian(zero(x0), P) 
+        p = A * p ⊕ Gaussian(zero(x0), P)
         # correct
         p, yres, _ = Kalman.correct(Kalman.JosephForm(), p, (Gaussian(obs[i], Q), B))
         push!(ps, p) # save filtered density
@@ -120,17 +123,17 @@ function kalman_filtering(obs, A, B, P, Q)
     return ps
 end
 
-x_kalman_filtering_inferred = kalman_filtering(real_y,A,B,P,Q)
+x_kalman_filtering_inferred = kalman_filtering(real_y, A, B, P, Q)
 
 
-const A_ = [ cos(θ) -sin(θ); sin(θ) cos(θ) ]
-const B_ = [ 1.3 0.0; 0.0 0.7 ]
-const P_ = [ 0.1 0.0; 0.0 0.1 ]
-const Q_ = [ 10.0 0.0; 0.0 10.0 ]
+const A_ = [cos(θ) -sin(θ); sin(θ) cos(θ)]
+const B_ = [1.3 0.0; 0.0 0.7]
+const P_ = [0.1 0.0; 0.0 0.1]
+const Q_ = [10.0 0.0; 0.0 10.0]
 
-OnlineSampling.@node function hmm((t,obs))
-    @init x = rand(MvNormal([ 0.0, 0.0 ], [ 100.0 0.0; 0.0 100.0 ]))
-    x = rand(MvNormal(A_* @prev(x), P_))
+OnlineSampling.@node function hmm((t, obs))
+    @init x = rand(MvNormal([0.0, 0.0], [100.0 0.0; 0.0 100.0]))
+    x = rand(MvNormal(A_ * @prev(x), P_))
     y = rand(MvNormal(B_ * x, Q_))
     if t > 1
         @observe(y, obs)
@@ -142,10 +145,11 @@ function sbp_inference_filtering(obs)
     # adding a dummy observation for time 0
     obs_init = vcat([[missing missing]], obs)
     n = length(obs_init)
-    cloud = @nodeiter particles = 1 algo = streaming_belief_propagation hmm(enumerate(obs_init)) #hmm(Iterators.Stateful(obs))
+    cloud =
+        @nodeiter particles = 1 algo = streaming_belief_propagation hmm(enumerate(obs_init)) #hmm(Iterators.Stateful(obs))
 
-    dist_onlinesampling_sbp = Vector{Distribution}(undef,n)
-    for (i,c) in enumerate(cloud)
+    dist_onlinesampling_sbp = Vector{Distribution}(undef, n)
+    for (i, c) in enumerate(cloud)
         dist_onlinesampling_sbp[i] = dist(c.particles[1])
     end
     return dist_onlinesampling_sbp[2:end]
@@ -164,46 +168,89 @@ dist_onlinesampling_sbp = sbp_inference_filtering(real_y)
 #delta_2 = [sum(abs.(delta)) for delta in (mean.(dist_onlinesampling_sbp) - mean.(x_kalman_filtering_inferred))]
 #plot(1:n, delta_1)
 #plot(1:n, delta_2)
-@assert sum(sum([abs.(delta) for delta in (mean.(x_kalman_filtering_inferred) - mean.(dist_onlinesampling_sbp))])) < 1e-10
+@assert sum(
+    sum([
+        abs.(delta) for
+        delta in (mean.(x_kalman_filtering_inferred) - mean.(dist_onlinesampling_sbp))
+    ]),
+) < 1e-10
 
-benchmark_rmp_sizes = [ 50, 100, 250, 500, 1_000, 2_000, 5_000, 10_000, 15_000, 20_000, 25_000, 50_000 ];
+benchmark_rmp_sizes =
+    [50, 100, 250, 500, 1_000, 2_000, 5_000, 10_000, 15_000, 20_000, 25_000, 50_000];
 
 reactivemp_benchmark_results = map(benchmark_rmp_sizes) do size
-    
-    benchmark_fitlering = @benchmark reactivemp_inference_filtering(observations, $A, $B, $P, $Q) seconds=30 setup=begin
-        states, observations = generate_data($size, $A, $B, $P, $Q);
-    end
-    
+
+    benchmark_fitlering =
+        @benchmark reactivemp_inference_filtering(observations, $A, $B, $P, $Q) seconds =
+            30 setup = begin
+            states, observations = generate_data($size, $A, $B, $P, $Q)
+        end
+
     println("Finished $size for ReactiveMP")
     return (size, benchmark_fitlering)
 end
 
 kalman_benchmark_results = map(benchmark_rmp_sizes) do size
-    
-    benchmark_fitlering = @benchmark kalman_filtering(observations, $A, $B, $P, $Q) seconds=30 setup=begin
-        states, observations = generate_data($size, $A, $B, $P, $Q);
-    end
-    
+
+    benchmark_fitlering =
+        @benchmark kalman_filtering(observations, $A, $B, $P, $Q) seconds = 30 setup =
+            begin
+                states, observations = generate_data($size, $A, $B, $P, $Q)
+            end
+
     println("Finished $size for Kalman")
     return (size, benchmark_fitlering)
 end
 
 sbp_benchmark_results = map(benchmark_rmp_sizes) do size
 
-    benchmark_fitlering = @benchmark sbp_inference_filtering(observations) seconds=30 setup=begin
-        states, observations = generate_data($size, $A, $B, $P, $Q);
-    end
-    
+    benchmark_fitlering =
+        @benchmark sbp_inference_filtering(observations) seconds = 30 setup = begin
+            states, observations = generate_data($size, $A, $B, $P, $Q)
+        end
+
     println("Finished $size for OnlineSampling")
     return (size, benchmark_fitlering)
 end
 
 benchmark_time_ms(trial) = minimum(trial).time / 1_000_000
 
-lgssm_scaling = plot(xscale = :log10, yscale = :log10, xlabel = "Number of observations", ylabel = "Minimum execution time (in ms)", title = "Linear Gaussian State Space Model", legend = :bottomright, size = (650, 400))
-lgssm_scaling = plot!(lgssm_scaling, benchmark_rmp_sizes, map(i -> benchmark_time_ms(kalman_benchmark_results[i][2]), 1:length(benchmark_rmp_sizes)), markershape = :utriangle, label = "Kalman")
-lgssm_scaling = plot!(lgssm_scaling, benchmark_rmp_sizes, map(i -> benchmark_time_ms(reactivemp_benchmark_results[i][2]), 1:length(benchmark_rmp_sizes)), markershape = :utriangle, label = "ReactiveMP")
-lgssm_scaling = plot!(lgssm_scaling, benchmark_rmp_sizes, map(i -> benchmark_time_ms(sbp_benchmark_results[i][2]), 1:length(benchmark_rmp_sizes)), markershape = :diamond, label = "SBP")
+lgssm_scaling = plot(
+    xscale = :log10,
+    yscale = :log10,
+    xlabel = "Number of observations",
+    ylabel = "Minimum execution time (in ms)",
+    title = "Linear Gaussian State Space Model",
+    legend = :bottomright,
+    size = (650, 400),
+)
+lgssm_scaling = plot!(
+    lgssm_scaling,
+    benchmark_rmp_sizes,
+    map(
+        i -> benchmark_time_ms(kalman_benchmark_results[i][2]),
+        1:length(benchmark_rmp_sizes),
+    ),
+    markershape = :utriangle,
+    label = "Kalman",
+)
+lgssm_scaling = plot!(
+    lgssm_scaling,
+    benchmark_rmp_sizes,
+    map(
+        i -> benchmark_time_ms(reactivemp_benchmark_results[i][2]),
+        1:length(benchmark_rmp_sizes),
+    ),
+    markershape = :utriangle,
+    label = "ReactiveMP",
+)
+lgssm_scaling = plot!(
+    lgssm_scaling,
+    benchmark_rmp_sizes,
+    map(i -> benchmark_time_ms(sbp_benchmark_results[i][2]), 1:length(benchmark_rmp_sizes)),
+    markershape = :diamond,
+    label = "SBP",
+)
 
 #display(lgssm_scaling)
 

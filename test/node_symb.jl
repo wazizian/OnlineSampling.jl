@@ -190,7 +190,7 @@ end
     @node function model()
         @init p = rand(Beta(10, 10))
         p = @prev(p)
-        disc_rv = rand(Binomial(n,p))
+        disc_rv = rand(Binomial(n, p))
         return p, disc_rv
     end
 
@@ -201,14 +201,12 @@ end
 
     @node function infer(obs)
         p, disc_rv = @nodecall model()
-        @observe(disc_rv,obs)
+        @observe(disc_rv, obs)
         return p
     end
 
-    symb_clouds = [
-        (@noderun T = T particles = 1 algo = algo infer(obs)) for
-        algo in symb_algorithms
-    ]
+    symb_clouds =
+        [(@noderun T = T particles = 1 algo = algo infer(obs)) for algo in symb_algorithms]
     for (algo, cloud) in zip(symb_algorithms, symb_clouds)
         @test mean(cloud) ≈ p_true atol = 0.05
     end

@@ -35,8 +35,8 @@ end
     y = initialize!(gm, CdBernoulli(), x)
     observe!(gm, x, 0.2)
 
-    x_node = SBP.get_node(x) 
-    y_node = SBP.get_node(y) 
+    x_node = SBP.get_node(x)
+    y_node = SBP.get_node(y)
 
     @test x_node isa SBP.Realized
     @test x_node.val ≈ 0.2
@@ -47,7 +47,7 @@ end
     logp = observe!(gm, z, true)
 
     y_node = SBP.get_node(y)
-    z_node = SBP.get_node(z) 
+    z_node = SBP.get_node(z)
 
     @test z_node isa SBP.Realized
     @test logp ≈ log(0.2)
