@@ -32,7 +32,7 @@ x_pos = [t[1] for t in traj]
 alt = [planePosY - t[2] for t in traj]
 
 @node function model()
-    @init x = rand(Normal(0.0, 15.0))
+    @init x = rand(Normal(0.0, sqrt(15.0)))
     x = rand(Normal(@prev(x) + speed, speedStdev))
     h = rand(Normal(planePosY - ground(x), measurementNoiseStdev))
     return x, h
@@ -53,7 +53,6 @@ function particles_prob(cloud)
     p = sortperm(values)
     return values[p], softmax(cloud.logweights[p])
 end
-
 
 anim = @animate for (i, cloud) in enumerate(cloud_iter)
     p = plot(plotx, ground.(plotx), label = "")
@@ -77,6 +76,7 @@ gif(anim, "./visu/linear_1d_fps30.gif", fps = 30)
 cloud_iter_sbp =
     @nodeiter particles = 1 algo = streaming_belief_propagation infer(obs)
 
+
 anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
     p = plot(plotx, ground.(plotx), label = "")
     p = scatter!([x_pos[i]], [planePosY], color = "green", label = "", markersize = 5)
@@ -91,7 +91,7 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
         legend = false,
     )
     dist_g = dist(cloud.particles[1])
-    p = plot!(x -> 5 .+ 5*pdf(Normal(dist_g.μ, dist_g.σ), x))
+    p = plot!(x -> 5 .+ 2*pdf(Normal(dist_g.μ, dist_g.σ), x))
 end 
 
 gif(anim, "./visu/linear_sbp_1d_fps30.gif", fps = 30)

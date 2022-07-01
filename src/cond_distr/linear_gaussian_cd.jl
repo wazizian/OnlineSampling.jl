@@ -67,8 +67,8 @@ end
 function condition_cd(parent::Normal, child::CdNormal)
     child_d = child(parent)
     cor = parent.σ^2 * child.linear
-    new_cov = sqrt(parent.σ^2 - (cor / child_d.σ)^2)
+    new_var = parent.σ^2 - (cor / child_d.σ)^2
     new_linear = cor / (child_d.σ^2)
     new_mean = parent.μ - new_linear * child_d.μ
-    return CdNormal(new_linear, new_mean, new_cov)
+    return CdNormal(new_linear, new_mean, sqrt(new_var))
 end
