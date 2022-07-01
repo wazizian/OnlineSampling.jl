@@ -163,6 +163,12 @@ end
 # Overloads
 Base.:+(lt::LinearTracker, v::AbstractVector) = (@set lt.offset = lt.offset + v)
 Base.:+(v::AbstractVector, lt::LinearTracker) = lt + v
+Base.:-(lt::LinearTracker) = @chain lt begin
+    @set _.linear = - _.linear
+    @set _.offset = - _.offset
+end
+Base.:-(lt::LinearTracker, v::AbstractVector) = lt + (-v)
+Base.:-(v::AbstractVector, lt::LinearTracker) = v + (-lt)
 Base.:*(A::AbstractMatrix, lt::LinearTracker) = @chain lt begin
     @set _.linear = A * _.linear
     @set _.offset = A * _.offset
