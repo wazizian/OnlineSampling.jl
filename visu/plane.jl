@@ -3,6 +3,7 @@ using OnlineSampling
 using Pkg
 Pkg.activate("./visu/")
 using Plots
+using LinearAlgebra
 
 # example from https://youtu.be/aUkBa1zMKv4
 ground(x) =
@@ -22,8 +23,8 @@ ground(x) =
 plotx = collect(-40:0.01:40)
 
 # Some unceratinty parameters
-const measurementNoiseStdev = [0.1];
-const speedStdev = [0.2];
+const measurementNoiseStdev = 0.1 * I(1);
+const speedStdev = 0.2 * I(1);
 
 # Speed of the aircraft
 const speed = [0.2];
@@ -45,8 +46,8 @@ alt = [planePosY - t[2] for t in traj]
 
 @node function model()
     @init x = rand(MvNormal([0.0], [15.0]))
-    x = rand(MvNormal(@prev(x) + speed, speedStdev))
-    h = rand(MvNormal(planePosY .- ground.(x), measurementNoiseStdev))
+    x = rand(MvNormal(@prev(x) + speed, speedStdev^2))
+    h = rand(MvNormal(planePosY .- ground.(x), measurementNoiseStdev^2))
     return x, h
 end
 
