@@ -1,29 +1,17 @@
-using Random, Distributions
-using OnlineSampling
-using Pkg
-Pkg.activate("./visu/")
-using Plots
-using LinearAlgebra
-
+include("basics_plane.jl")
 # Inspired from https://youtu.be/aUkBa1zMKv4
 ground(x) = [1.0] - 1 / 40.0 * I(1) * x
 plotx = collect(-40:0.01:40)
 
-# Some unceratinty parameters
-const measurementNoiseStdev = 0.1 * I(1);
-const speedStdev = 0.2 * I(1);
-
 # Speed of the aircraft
-const speed = [0.2];
-# Set starting position of aircraft
-planePosX = [-25];
-planePosY = [4];
+speed = [0.2];
 
 @node function true_plane()
     @init x = planePosX
     x = @prev(x) + speed
     h = planePosY - ground(x)
-    return x, h
+    h_r = rand(MvNormal(h, ScalMat(1, measurementNoiseStdev^2)))
+    return x, h_r, h
 end
 
 traj = collect(@nodeiter T = 300 true_plane())
@@ -33,8 +21,8 @@ alt = [planePosY - t[2] for t in traj]
 
 @node function model()
     @init x = rand(MvNormal([0.0], [15.0]))
-    x = rand(MvNormal(speed + @prev(x), speedStdev^2))
-    h = rand(MvNormal(planePosY - ground(x), measurementNoiseStdev^2))
+    x = rand(MvNormal(speed + @prev(x), ScalMat(1, speedStdev^2)))
+    h = rand(MvNormal(planePosY - ground(x), ScalMat(1, measurementNoiseStdev^2)))
     return x, h
 end
 
@@ -45,7 +33,7 @@ end
 end
 
 N = 500
-softmax(x) = exp.(x .- maximum(x)) ./ sum(exp.(x .- maximum(x)))
+
 cloud_iter = @nodeiter particles = N infer(eachrow(obs))
 
 function particles_prob(cloud)
