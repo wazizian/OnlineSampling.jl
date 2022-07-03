@@ -77,3 +77,52 @@ end
     test = KSampleADTest(node_samples, smc_samples)
     @test (pvalue(test) > 0.01) || @show test
 end
+
+
+@testset "comparison scalar gaussian hmm" begin
+    N = 10000
+    Nsamples = 1000
+    drift_x = 1.0
+    drift_y = -1.0
+
+    Σ = ScalMat(1, 4.0)
+    @node function model()
+        @init x = rand(MvNormal([0.0], Σ))
+        x = rand(MvNormal(@prev(x) + [drift_x], Σ))
+        y = rand(MvNormal(x + [drift_y], Σ))
+        return x, y
+    end
+    @node function hmm(obs)
+        x, y = @nodecall model()
+        @observe(y, obs)
+        return x
+    end
+
+    σ = 2.0
+    @node function model1d()
+        @init x = rand(Normal(0.0, σ))
+        x = rand(Normal(@prev(x) + drift_x, σ))
+        y = rand(Normal(x + drift_y, σ))
+        return x, y
+    end
+    @node function hmm1d(obs)
+        x, y = @nodecall model1d()
+        @observe(y, obs)
+        return x
+    end
+    obs = Vector{Float64}(1:5)
+    obs = reshape(obs, (5, 1))
+    @assert size(obs) == (5, 1)
+
+    node_cloud = @noderun T = 5 particles = N hmm(eachrow(obs))
+    node_samples = dropdims(rand(node_cloud, Nsamples); dims = 1)
+
+    obs = reshape(obs, (5,))
+    @assert size(obs) == (5,)
+
+    node_cloud1d = @noderun T = 5 particles = N hmm1d(obs)
+    node_samples1d = vec(rand(node_cloud1d, Nsamples))
+
+    test = KSampleADTest(node_samples, node_samples1d)
+    @test (pvalue(test) > 0.01) || @show test
+end
