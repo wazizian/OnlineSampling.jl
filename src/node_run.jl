@@ -5,6 +5,7 @@ struct NodeCall{L<:Union{Int,Nothing}}
     f::Any
     ctx::SamplingCtx
     len::L
+    #resample_threshold::Float64
     argsiter::Any
 end
 
@@ -61,11 +62,13 @@ function node_iter(macro_args...)
     n_iterations_expr = :(nothing)
     node_particles = :(0)
     algo = :(particle_filter)
-    iterable = :(false)
+    #iterable = :(false)
+    resample_threshold = :(0.5)
     for macro_arg in macro_args
         @capture(macro_arg, T = val_) && (n_iterations_expr = val)
         @capture(macro_arg, particles = val_) && (node_particles = val)
         @capture(macro_arg, algo = val_) && (algo = val)
+        @capture(macro_arg, rt = val_) && (resample_threshold = val)
     end
 
     if node_particles != :(0)
@@ -75,6 +78,7 @@ function node_iter(macro_args...)
             node_particles,
             algo,
             f,
+            resample_threshold,
             args...,
         )
         return esc(smc_call)

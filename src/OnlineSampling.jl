@@ -32,7 +32,7 @@ using Reexport
 
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
-import ..CondDistr: CdMvNormal, CdBernoulli, CdBinomial
+import ..CondDistr: CdMvNormal, CdNormal, CdBernoulli, CdBinomial
 
 include("symb_interface.jl")
 using .SymbInterface

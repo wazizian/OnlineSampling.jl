@@ -16,5 +16,11 @@ unmvnormal(d::MvNormal) = Normal(only(d.μ), (sqrt ∘ only)(d.Σ))
         c = CdNormal(lc, μc, σc)
         @test unmvnormal(mvc(mvp)) ≈ c(p)
         @test (unmvnormal ∘ condition)(mvp, mvc, [vc]) ≈ condition(p, c, vc)
+
+        mvcond = condition_cd(mvp,mvc)
+        cond = condition_cd(p,c)
+        @test mvcond.linear[1] ≈ cond.linear
+        @test mvcond.μ[1] ≈ cond.μ
+        @test mvcond.Σ[1] ≈ (cond.σ)^2
     end
 end

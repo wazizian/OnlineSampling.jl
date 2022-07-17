@@ -111,6 +111,22 @@ struct LinearTracker{
 end
 
 """
+    Tracker for number-valued r.v. which authorizes linear transformations
+"""
+struct ScalarLinearTracker{
+    T<:Number,
+    G<:GraphicalModel,
+    I,
+    Linear<:Number,
+    D<:Distribution{Univariate,Continuous},
+} <: AbstractTrackedRV{T,Univariate,Continuous,D}
+    gm::G
+    id::I
+    linear::Linear
+    offset::T
+end
+
+"""
     Constructor for LinearTracker to ensure interop with Accessor.jl
 """
 ConstructionBase.constructorof(
@@ -123,6 +139,20 @@ ConstructionBase.constructorof(
     D<:Distribution{Multivariate,Continuous},
 } = LinearTracker{T,G,I,Linear,D}
 
+"""
+    Constructor for ScalarLinearTracker to ensure interop with Accessor.jl
+"""
+ConstructionBase.constructorof(
+    ::Type{ScalarLinearTracker{T,G,I,Linear,D}},
+) where {
+    T<:Number,
+    I,
+    G<:GraphicalModel,
+    Linear<:Number,
+    D<:Distribution{Univariate,Continuous},
+} = ScalarLinearTracker{T,G,I,Linear,D}
+
+
 # TrackedObservation interface
 value(trv::Tracker) = value!(trv.gm, trv.id)
 soft_value(trv::Tracker) = rand!(trv.gm, trv.id)
@@ -132,7 +162,7 @@ dist(trv::Tracker) = dist(trv.gm, trv.id)
 """
     Pretty-printing of a linear tracker
 """
-function Base.show(io::IO, lt::LinearTracker)
+function Base.show(io::IO, lt::Union{LinearTracker,ScalarLinearTracker})
     print(
         io,
         "node = $(SymbInterface.get_node(lt.gm, lt.id)), linear = $(lt.linear), offset = $(lt.offset)",
@@ -160,20 +190,55 @@ function LinearTracker(
     return LinearTracker{T,G,I,Linear,D}(gm, id, linear, offset)
 end
 
+"""
+    Instantiate a scalar linear tracker
+"""
+# Note that d is only used for its type and dimensions
+function ScalarLinearTracker(
+    gm::GraphicalModel,
+    id,
+    template_d::Distribution{Univariate,Continuous},
+)
+    G = typeof(gm)
+    offset = 0.0
+    linear = 1.0
+    T = Number
+    Linear = Number
+    D = typeof(template_d)
+    I = typeof(id)
+    return ScalarLinearTracker{T,G,I,Linear,D}(gm, id, linear, offset)
+end
+
 # Overloads
 Base.:+(lt::LinearTracker, v::AbstractVector) = (@set lt.offset = lt.offset + v)
 Base.:+(v::AbstractVector, lt::LinearTracker) = lt + v
+Base.:+(lt::ScalarLinearTracker, v::Number) = (@set lt.offset = lt.offset + v)
+Base.:+(v::Number, lt::ScalarLinearTracker) = lt + v
+Base.:-(lt::Union{LinearTracker, ScalarLinearTracker}) = @chain lt begin
+    @set _.linear = -_.linear
+    @set _.offset = -_.offset
+end
+Base.:-(lt::LinearTracker, v::AbstractVector) = lt + (-v)
+Base.:-(v::AbstractVector, lt::LinearTracker) = v + (-lt)
+Base.:-(lt::ScalarLinearTracker, v::Number) = lt + (-v)
+Base.:-(v::Number, lt::ScalarLinearTracker) = v + (-lt)
 Base.:*(A::AbstractMatrix, lt::LinearTracker) = @chain lt begin
+    @set _.linear = A * _.linear
+    @set _.offset = A * _.offset
+end
+Base.:*(A::Number, lt::ScalarLinearTracker) = @chain lt begin
     @set _.linear = A * _.linear
     @set _.offset = A * _.offset
 end
 
 # TrackedObservation interface
-value(lt::LinearTracker) = lt.linear * value!(lt.gm, lt.id) + lt.offset
-soft_value(lt::LinearTracker) = lt.linear * rand!(lt.gm, lt.id) + lt.offset
-internal_observe(lt::LinearTracker, obs) =
+value(lt::Union{LinearTracker,ScalarLinearTracker}) =
+    lt.linear * value!(lt.gm, lt.id) + lt.offset
+soft_value(lt::Union{LinearTracker,ScalarLinearTracker}) =
+    lt.linear * rand!(lt.gm, lt.id) + lt.offset
+internal_observe(lt::Union{LinearTracker,ScalarLinearTracker}, obs) =
     observe!(lt.gm, lt.id, lt.linear \ (obs - lt.offset))
-function dist(lt::LinearTracker)
+function dist(lt::Union{LinearTracker,ScalarLinearTracker})
     node_dist = dist(lt.gm, lt.id)
     return lt.linear * node_dist + lt.offset
 end
@@ -189,11 +254,15 @@ track_rv(::GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
 
 # Roots
 track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize!(gm, d), d)
+track_rv(gm::GraphicalModel, d::Normal) =
+    ScalarLinearTracker(gm, initialize!(gm, d), d)
 track_rv(gm::GraphicalModel, d::Beta) = Tracker(gm, initialize!(gm, d), d)
 
 # Children
 track_rv(gm::GraphicalModel, t::Tuple{CdMvNormal,I}) where {I} =
     LinearTracker(gm, initialize!(gm, t...), t[1]())
+track_rv(gm::GraphicalModel, t::Tuple{CdNormal,I}) where {I} =
+    ScalarLinearTracker(gm, initialize!(gm, t...), t[1]())
 track_rv(gm::GraphicalModel, t::Tuple{CdBernoulli,I}) where {I} =
     Tracker(gm, initialize!(gm, t...), t[1]())
 track_rv(gm::GraphicalModel, t::Tuple{CdBinomial,I}) where {I} =
@@ -207,6 +276,14 @@ Distributions.MvNormal(
     cov,
 ) where {T<:AbstractVector,D<:AbstractMvNormal} =
     (CdMvNormal(μ.linear, μ.offset, cov), μ.id)
+
+"""
+    Get the conditional Normal distribution from a Normal ScalarLinearTracker
+"""
+Distributions.Normal(
+    μ::AbstractTrackedRV{T,Univariate,Continuous,D},
+    σ,
+) where {T<:Number,D<:Normal} = (CdNormal(μ.linear, μ.offset, σ), μ.id)
 
 """
     Get the conditional Bernoulli distribution from a Beta Tracker

@@ -11,6 +11,13 @@ include("linear_gaussian_cd.jl")
 include("beta_cd.jl")
 
 export condition,
-    CdMvNormal, CdBernoulli, CdBinomial, ConditionalDistribution, DummyCD, condition_cd, jointdist
+    CdMvNormal,
+    CdNormal,
+    CdBernoulli,
+    CdBinomial,
+    ConditionalDistribution,
+    DummyCD,
+    condition_cd,
+    jointdist
 
 end
