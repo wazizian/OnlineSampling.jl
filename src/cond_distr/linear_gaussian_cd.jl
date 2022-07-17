@@ -63,6 +63,7 @@ end
 (cd::CdNormal)(parent::AbstractFloat) = Normal(cd.linear * parent + cd.μ, cd.σ)
 (cd::CdNormal)(parent::Normal) =
     Normal(cd.linear * parent.μ + cd.μ, sqrt(cd.linear^2 * parent.σ^2 + cd.σ^2))
+(cd::CdNormal)(parent::Dirac) = Normal(cd.linear * parent.value + cd.μ, cd.σ)
 
 function condition_cd(parent::Normal, child::CdNormal)
     child_d = child(parent)

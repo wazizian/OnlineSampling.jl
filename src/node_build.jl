@@ -92,7 +92,7 @@ end
 """
     Build a call to the SMC as a node call
 """
-function build_smc_call(toplevel, marg, node_particles, algo, f, args...;)
+function build_smc_call(toplevel, marg, node_particles, algo, f, resample_threshold, args...;)
     macrosymb = toplevel ? Symbol("@nodeiter") : Symbol("@nodecall")
     wrap_func = toplevel ? :($(@__MODULE__).cst) : :(identity)
     symbval = :($(@__MODULE__).choose_ctx_type($algo))
@@ -110,6 +110,7 @@ function build_smc_call(toplevel, marg, node_particles, algo, f, args...;)
                 $(wrap_func)($(node_particles)),
                 $(wrap_func)($(symbval)),
                 $(wrap_func)($(f)),
+                $(wrap_func)($(resample_threshold)),
                 $(args...),
             )
         end,
@@ -127,18 +128,21 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
         node_particles = :(0)
         reset_cond = :(false)
         algo = :(particle_filter)
+        resample_threshold = :(0.5)
         for marg in margs
             if @capture(marg, particles = val_)
                 node_particles = val
             elseif @capture(marg, algo = val_)
                 algo = val
+            elseif @capture(marg, rt = val_)
+                resample_threshold = val
             else
                 reset_cond = marg
             end
         end
 
         if node_particles != :(0)
-            smc_call = build_smc_call(false, reset_cond, node_particles, algo, f, args...)
+            smc_call = build_smc_call(false, reset_cond, node_particles, algo, f, resample_threshold, args...)
             return quote
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here

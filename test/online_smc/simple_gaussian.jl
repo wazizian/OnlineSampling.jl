@@ -2,6 +2,7 @@ const N = 10000
 const Nsamples = 1000
 const atol = 3 / sqrt(min(N, Nsamples))
 const rtol = 0.05
+const resample_threshold = 0.5
 
 @testset "tools" begin
     d = MvNormal([0.0], ScalMat(1, 1.0))
@@ -30,7 +31,7 @@ end
     end
 
     cloud = OnlineSMC.Cloud{MvParticle}(N)
-    new_cloud = OnlineSMC.smc_step(proposal!, cloud)
+    new_cloud = OnlineSMC.smc_step(proposal!, resample_threshold, cloud)
 
     target = MvNormal([3 / 11], ScalMat(1, 2 / 11))
     @test mean(new_cloud) ≈ mean(target) rtol = 0.05
@@ -58,10 +59,10 @@ end
     T = 10
     cloud = OnlineSMC.Cloud{MvParticle}(N)
     for _ = 1:(T-1)
-        cloud = OnlineSMC.smc_step(proposal!, cloud)
+        cloud = OnlineSMC.smc_step(proposal!, resample_threshold, cloud)
     end
     obs_y = [1.0]
-    cloud = OnlineSMC.smc_step(cloud) do p
+    cloud = OnlineSMC.smc_step(resample_threshold, cloud) do p
         new_p = proposal!(p)
         loglikelihood = -0.5 * (only(obs_y) - (only ∘ OnlineSMC.value)(new_p))^2
         return MvParticle(OnlineSMC.value(new_p), loglikelihood)
