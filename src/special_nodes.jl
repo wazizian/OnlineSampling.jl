@@ -42,11 +42,12 @@ end
     nparticles::Int64,
     ctx_type::Type{C},
     step::F,
+    resample_threshold::Float64,
     args...,
 ) where {C<:SamplingCtx,F<:Function}
     # TODO (impr): get the return type if avaiblable ?
     @init void_cloud = SMC.Cloud{MemParticle{Nothing,C,Nothing}}(nparticles)
-    @init cloud = smc_node_step(step, void_cloud, true, args...)
-    cloud = smc_node_step(step, (@prev cloud), false, args...)
+    @init cloud = smc_node_step(step, void_cloud, true, resample_threshold, args...)
+    cloud = smc_node_step(step, (@prev cloud), false, resample_threshold, args...)
     return sanitize_return(cloud)
 end

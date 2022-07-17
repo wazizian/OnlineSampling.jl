@@ -43,9 +43,10 @@ function smc_node_step(
     step::F,
     cloud::SMC.Cloud{P},
     reset::Bool,
+    resample_threshold::Float64,
     args...,
 ) where {F<:Function,P<:MemParticle}
-    return SMC.smc_step(proposal, cloud, step, reset, args...)
+    return SMC.smc_step(proposal, resample_threshold, cloud, step, reset, args...)
 end
 
 """

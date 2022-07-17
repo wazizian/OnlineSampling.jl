@@ -1,3 +1,5 @@
+const resample_threshold = 0.5
+
 @testset "smc counter" begin
     @node function counter()
         @init x = 0
@@ -70,7 +72,7 @@ end
     end
     smc_cloud = OnlineSMC.Cloud{MvParticle}(N)
     for t = 1:5
-        smc_cloud = OnlineSMC.smc_step(proposal, smc_cloud, obs[t, :])
+        smc_cloud = OnlineSMC.smc_step(proposal, resample_threshold, smc_cloud, obs[t, :])
     end
     smc_samples = dropdims(rand(smc_cloud, Nsamples); dims = 1)
 
