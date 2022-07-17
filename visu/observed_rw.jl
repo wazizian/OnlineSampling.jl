@@ -45,12 +45,12 @@ end
 cloud_iter = @nodeiter particles = N rt = 0.0 observed_rw(obs)
 all_x, ind = compute_traj_ind(cloud_iter)
 p = create_plot(all_x, ind)
-#png(p, "./visu/rw_no_resampling")
+png(p, "./visu/rw_no_resampling")
 
 cloud_iter = @nodeiter particles = N rt = 1.0 observed_rw(obs)
 all_x, ind = compute_traj_ind(cloud_iter)
 p = create_plot(all_x, ind)
-#png(p, "./visu/rw_with_resampling")
+png(p, "./visu/rw_with_resampling")
 
 period = 50
 @node function observed_rwc(obs)
@@ -68,7 +68,7 @@ end
 cloud_iter = @nodeiter particles = N rt = 1.0 observed_rwc(obs)
 all_x, ind = compute_traj_ind(cloud_iter)
 p = create_plot(all_x, ind,period)
-#png(p, "./visu/rw50_with_resampling")
+png(p, "./visu/rw50_with_resampling")
 
 
 # To get exact distriburtion, 
@@ -90,7 +90,7 @@ last = reshape(last, 1, length(last))
     return dx, csumx
 end
 
-delta_obs = [20, 20, 20]
+delta_obs = [100, 100, 100]
 cloud_iter = @nodeiter particles = 1 algo = belief_propagation rwcond(delta_obs)
 all_dx = []
 all_csum = []
@@ -103,6 +103,7 @@ end
 
 scatter([0,100,200,300],cumsum([0, delta_obs...]), label="")
 plot!(cumsum(all_dx), label="")
+png("./visu/rw100_bp")
 
 clouds = collect(Iterators.take(cloud_iter,3))
 
@@ -114,7 +115,7 @@ for (i,cloud) in enumerate(cloud_iter)
     S_full[(i-1)*block+1:(i)*block,(i-1)*block+1:(i)*block] = S
 end
 heatmap(S_full)
-#png("./visu/cov_bp")
+png("./visu/cov_bp")
 
 cov_bridge(s,t,T=100.0) = min(s,t) - s*t/T
 S_bridge = zeros(Float64,100,100)
@@ -124,4 +125,4 @@ for i=1:100
     end
 end
 heatmap(S_bridge)
-#png("./visu/cov_bridge")
+png("./visu/cov_bridge")
