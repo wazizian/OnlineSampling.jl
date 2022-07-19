@@ -7,12 +7,12 @@ More comprehensive tests can be found in the `test` directory.
 
 We use julia's macro system to program reactive models in a style reminiscent of synchronous dataflow programming languages.
 
-A stream function is introduced by the macro `@node`.
-Inside a `node`, the macro `@init` can be used to declare a variable as a memory.
-Another macro `@prev` can then be used to access the value of a memory variable at the previous time step.
+A stream function is introduced by the macro [`@node`](@ref).
+Inside a `node`, the macro [`@init`](@ref) can be used to declare a variable as a memory.
+Another macro [`@prev`](@ref) can then be used to access the value of a memory variable at the previous time step.
 
-Then, the macro `@nodeiter` turns a node into a julia iterator which unfolds the execution of a node for a given number of steps and returns the current value at each step.
-Alternatively the macro `@noderun` simply executes the node for a given number of steps and returns the last computed value.
+Then, the macro [`@nodeiter`](@ref) turns a node into a julia iterator which unfolds the execution of a node for a given number of steps and returns the current value at each step.
+Alternatively the macro [`@noderun`](@ref) simply executes the node for a given number of steps and returns the last computed value.
 
 For examples, the following function `cpt` implements a simple counter incremented at each step.
 
@@ -41,7 +41,7 @@ Following recent probabilistic languages (e.g., [Turing.jl](https://turing.ml/) 
 For example, the following example is a HMM where we try to estimate the position of a moving agent from noisy observations.
 At each step, we assume that the current position `x` is normally distributed around the previous position `@prev(x)`, and we assume that the current observation `y` is normally distributed around the current position.
 
-```@example
+```@example hmm
 using OnlineSampling
 using PDMats
 using Distributions
@@ -81,7 +81,7 @@ It extends [Delayed Sampling](https://arxiv.org/abs/1708.07787) able to compute 
 
 As a result, in the previous HMM example, belief propagation is able to recover the equation of a Kalman filter and compute the exact solution and only one particle is necessary as shown below (full example available [here](https://github.com/wazizian/OnlineSampling.jl/blob/main/examples/hmm.jl)) 
 
-```julia
+```@example hmm
 cloudbp = @noderun particles = 1 algo = belief_propagation hmm(eachrow(obs)) # launch the inference with 1 particles for all observations
 d = dist(cloudbp.particles[1])                                               # distribution for the last state
 println("Last estimation with bp: ", mean(d), " Observation: ", last(obs))
