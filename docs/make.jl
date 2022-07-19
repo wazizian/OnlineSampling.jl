@@ -11,3 +11,7 @@ makedocs(
         "Internals" => "internals.md",
     ]
 )
+
+deploydocs(
+    repo = "github.com/wazizian/OnlineSampling.jl.git",
+)
