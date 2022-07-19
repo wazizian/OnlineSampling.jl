@@ -11,16 +11,23 @@ Another macro [`@prev`](@ref) can then be used to access the value of a memory v
 @init
 @prev
 @nodecall
-@nodeiter
-@noderun
 cst
 ```
 
 ## Probabilistic Programming
 
-In a probabilistic model, random variables are introduced by `rand` and can be conditioned on concrete value using `@observe`.
+In a probabilistic model, random variables are introduced by `rand` and can be conditioned on concrete value using [`@observe`](@ref).
 
 ```@docs
 @observe
+```
+
+## Runtime
+
+Stream functions -- probabilistic or not -- can then be executed as Julia iterators using the following macros.
+
+```@docs
+@nodeiter
+@noderun
 Algorithms
 ```

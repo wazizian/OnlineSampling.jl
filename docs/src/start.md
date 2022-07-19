@@ -36,7 +36,7 @@ Reactive constructs `@init` and `@prev` can be mixed with probabilistic construc
 
 Following recent probabilistic languages (e.g., [Turing.jl](https://turing.ml/) or [Pyro](https://pyro.ai/)) in OnlineSampling, probabilistic constructs are the following:
 - `x = rand(D)` introduces a random variable `x` with the prior distribution `D`.
-- `@observe(x, v)` conditions the models assuming the random variable `x` takes the value `v`.
+- [`@observe(x, v)`](@ref @observe) conditions the models assuming the random variable `x` takes the value `v`.
 
 For example, the following example is a HMM where we try to estimate the position of a moving agent from noisy observations.
 At each step, we assume that the current position `x` is normally distributed around the previous position `@prev(x)`, and we assume that the current observation `y` is normally distributed around the current position.
@@ -73,10 +73,14 @@ end
 
 At each step, this program prints the estimated position and the current observation.
 
-## Semi-symbolic algorithm
+## Semi-Symbolic Algorithm
 
 The inference method used by OnlineSampling is a Rao-Blackwellised particle filter, a semi-symbolic algorithm which tries to analytically compute closed-form solutions as much as possible, and falls back to a particle filter when symbolic computations fail.
-For Gaussian random variables with linear relations, we implemented [belief propagation](https://en.wikipedia.org/wiki/Belief_propagation) if the factor graph is a tree. In this case, for any root $r$ of the tree on $n$ vertices, we have $p(x_1,...x_n) = p(x_r)\prod_{child \in [n] \backslash r} p(x_{child}|x_{parent})$ and belief propagation is an efficient algorithm to compute these factors. 
+For Gaussian random variables with linear relations, we implemented [belief propagation](https://en.wikipedia.org/wiki/Belief_propagation) if the factor graph is a tree. In this case, for any root $r$ of the tree on $n$ vertices, we have:
+
+$$p(x_1,...x_n) = p(x_r)\prod_{child \in [n] \backslash r} p(x_{child}|x_{parent})$$ 
+
+Belief propagation is an efficient algorithm to compute these factors. 
 It extends [Delayed Sampling](https://arxiv.org/abs/1708.07787) able to compute the marginals only on a single path.
 
 As a result, in the previous HMM example, belief propagation is able to recover the equation of a Kalman filter and compute the exact solution and only one particle is necessary as shown below (full example available [here](https://github.com/wazizian/OnlineSampling.jl/blob/main/examples/hmm.jl)) 
