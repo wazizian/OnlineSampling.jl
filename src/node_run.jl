@@ -46,7 +46,7 @@ function run(iter)
 end
 
 """
-    Convenience alias for `Iterators.repeated`
+Convenience alias for `Iterators.repeated`
 """
 cst(x) = Iterators.repeated(x)
 

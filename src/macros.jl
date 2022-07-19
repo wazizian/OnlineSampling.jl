@@ -1,40 +1,40 @@
 """
-    Declare a variable as a memory with a default value.
-    Can only be used inside a [`@node`](@ref) declaration.
+Declare a variable as a memory with a default value.
+Can only be used inside a [`@node`](@ref) declaration.
 """
 macro init(args...)
     error("Ill-formed @init: got @init $(args...)")
 end
 
 """
-    Access the value of a memory variable at the previous time step.
-    Can only be used inside a [`@node`](@ref) declaration.
+Access the value of a memory variable at the previous time step.
+Can only be used inside a [`@node`](@ref) declaration.
 """
 macro prev(args...)
     error("Ill-formed @prev: got @prev $(args...)")
 end
 
 """
-    Condition the model with the assumption that a random variable introduced by [`rand`](@ref) takes a concrete value.
+Condition the model with the assumption that a random variable introduced by `rand` takes a concrete value.
 
-    ```
-    x = rand(Normal(0, 1))     # x_t ~ N(0, 1)
-    @observe(x, 1.5)           # assume x = 0.5
-    ```
+```julia
+x = rand(Normal(0, 1))     # x_t ~ N(0, 1)
+@observe(x, 1.5)           # assume x = 0.5
+```
 """
 macro observe(args...)
     error("Ill-formed @observe: got @observe $(args...)")
 end
 
 """
-    Introduced a stream function. 
-    E.g.,
+Introduced a stream function. 
+E.g.,
 
-    ```
-    @node function one()
-        return 1
-    end
-    ```
+```julia
+@node function one()
+    return 1
+end
+```
 """
 macro node(args...)
     @assert !isempty(args)
@@ -49,19 +49,19 @@ macro node(args...)
 end
 
 """
-    Function call for stream functions.
+Function call for stream functions.
 
-    E.g., 
-    ```
-    @node function one()
-        return 1
-    end
+E.g., 
+```julia
+@node function one()
+    return 1
+end
 
-    @node function two()
-        x = @nodecall one()
-        return x + 1
-    end
-    ```
+@node function two()
+    x = @nodecall one()
+    return x + 1
+end
+```
 """
 macro nodecall(args...)
     error("Ill-formed @nodecall: got @nodecall $(args...)")
@@ -69,19 +69,19 @@ end
 
 
 """
-    Turn a stream function into a julia iterator.
-    Arguments:
-    - `T` is the number of iterations (optional, default=`nothing`)
-    - `algo` is the probabilistic runtime (optional, see [`Algorithms`](@ref))
-    - `particles` is the number of particles for the probabilistic runtime (optional, default=0)
-    - `rt` is the resampling threshold (optional, default=0.5)
+Turn a stream function into a julia iterator.
+Arguments:
+- `T` is the number of iterations (optional, default=`nothing`)
+- `algo` is the probabilistic runtime (optional, see [`Algorithms`](@ref))
+- `particles` is the number of particles for the probabilistic runtime (optional, default=0)
+- `rt` is the resampling threshold (optional, default=0.5)
 
-    E.g., 
-    ```
-    for x in @nodeiter T = 10 f() # for 10 iterations of f
-        println(x)                # print the current value
-    end
-    ```
+E.g., 
+```julia
+for x in @nodeiter T = 10 f() # for 10 iterations of f
+    println(x)                # print the current value
+end
+```
 """
 macro nodeiter(args...)
     return node_iter(args...)
@@ -89,17 +89,17 @@ end
 
 
 """
-    Unfold an iterator and return its last value
-    Arguments:
-    - `T` is the number of iterations (optional, default=`nothing`)
-    - `algo` is the probabilistic runtime (optional, see [`Algorithms`](@ref))
-    - `particles` is the number of particles for the probabilistic runtime (optional, default=0)
-    - `rt` is the resampling threshold (optional, default=0.5)
+Unfold an iterator and return its last value
+Arguments:
+- `T` is the number of iterations (optional, default=`nothing`)
+- `algo` is the probabilistic runtime (optional, see [`Algorithms`](@ref))
+- `particles` is the number of particles for the probabilistic runtime (optional, default=0)
+- `rt` is the resampling threshold (optional, default=0.5)
 
-    E.g., 
-    ```
-    res = @noderun T = 10 f()
-    ```
+E.g., 
+```julia
+res = @noderun T = 10 f()
+```
 """
 macro noderun(args...)
     return quote
