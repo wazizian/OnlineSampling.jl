@@ -56,7 +56,7 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
 
 @dynamo function irpass(ftype, argtypes...)
     isapplicable = ftypehasmethod(ftype, argtypes...)
-    # @show (ftype, argtypes, isapplicable)
+    @show (ftype, argtypes, isapplicable)
     if isapplicable
         # best case, continue
         ir = IR(ftype, argtypes...)

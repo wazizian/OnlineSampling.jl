@@ -207,9 +207,10 @@ end
     Build the stored variable struct
 """
 function gather_stored_variables(stored_vars::Set{Symbol})
-    stored_vars = collect(stored_vars)
-    quoted_vars = map(var -> QuoteNode(var), stored_vars)
-    return :(NamedTuple{($(quoted_vars...),)}(($(stored_vars...),)))
+    to_store_vars = collect(stored_vars)
+    #aged_vars = map(var -> :($(@__MODULE__).unwrap_soft_tracked_value($var)), to_store_vars)
+    quoted_vars = map(QuoteNode, to_store_vars)
+    return :(NamedTuple{($(quoted_vars...),)}($(@__MODULE__).unwrap_soft_tracked_value(($(to_store_vars...),))))
 end
 
 """
