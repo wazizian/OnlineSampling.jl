@@ -26,7 +26,12 @@ const OnCtx = Union{DSOnCtx,BPOnCtx,SBPOnCtx}
 const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel,SBP.GraphicalModel}
 
 """
-    Enum type to choose the inference algorithm
+Enum type to choose the inference algorithm in [`@noderun`](@ref) and [`@nodeiter`](@ref).
+Can be one of:
+- `particle_filter`
+- `delayed_sampling`
+- `belief_propagation`
+- `streaming_belief_propagation`
 """
 @enum Algorithms begin
     particle_filter
