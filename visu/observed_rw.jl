@@ -1,11 +1,13 @@
+# run this file from the root with the cmd:
+# julia --project visu/observed_rw.jl
 using OnlineSampling
 using PDMats
 using Distributions
 using LinearAlgebra
 using Pkg
 Pkg.activate("./visu/")
-using Plots
 using visu
+using Plots
 
 σ = 1e-10
 @node function observed_rw(obs)

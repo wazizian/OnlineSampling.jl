@@ -84,4 +84,12 @@ export @node,
     delayed_sampling,
     belief_propagation,
     streaming_belief_propagation
+    
+using Pkg
+
+function __init__()
+    #stuff to do at startup
+    isfile("Manifest.toml") || Pkg.instantiate()
+end
+
 end
