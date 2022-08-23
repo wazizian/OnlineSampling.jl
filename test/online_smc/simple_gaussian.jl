@@ -1,6 +1,6 @@
 const N = 10000
 const Nsamples = 1000
-const atol = 3 / sqrt(min(N, Nsamples))
+const atol = 5 / sqrt(min(N, Nsamples))
 const rtol = 0.05
 const resample_threshold = 0.5
 
