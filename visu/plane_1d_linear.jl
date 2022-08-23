@@ -2,15 +2,15 @@ using Random, Distributions
 using OnlineSampling
 using Pkg
 Pkg.activate("./visu/")
+using visu
 using Plots
 
-# example from https://youtu.be/aUkBa1zMKv4
 ground(x) = 1.0 - 1 / 40.0 * x
 plotx = collect(-40:0.01:40)
 
 # Some unceratinty parameters
-const measurementNoiseStdev = 0.1;
-const speedStdev = 0.2;
+measurementNoiseStdev = plane_measurementNoiseStdev
+speedStdev = plane_speedStdev
 
 # Speed of the aircraft
 const speed = 0.2;
@@ -32,7 +32,7 @@ x_pos = [t[1] for t in traj]
 alt = [planePosY - t[2] for t in traj]
 
 @node function model()
-    @init x = rand(Normal(0.0, sqrt(15.0)))
+    @init x = rand(Normal(planePosX, sqrt(1.0)))
     x = rand(Normal(@prev(x) + speed, speedStdev))
     h = rand(Normal(planePosY - ground(x), measurementNoiseStdev))
     return x, h
@@ -45,14 +45,7 @@ end
 end
 
 N = 500
-softmax(x) = exp.(x .- maximum(x)) ./ sum(exp.(x .- maximum(x)))
 cloud_iter = @nodeiter particles = N infer(obs)
-
-function particles_prob(cloud)
-    values = [c.retvalue[1] for c in cloud.particles]
-    p = sortperm(values)
-    return values[p], softmax(cloud.logweights[p])
-end
 
 anim = @animate for (i, cloud) in enumerate(cloud_iter)
     p = plot(plotx, ground.(plotx), label = "")
@@ -71,11 +64,10 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter)
     quiver!(v, 5 .+ zero(prob), quiver = (zero(v), 100 * prob))
 end 
 
-gif(anim, "./visu/linear_1d_fps30.gif", fps = 30)
+gif(anim, "./visu/plots/linear_1d_fps30.gif", fps = 30)
 
 cloud_iter_sbp =
     @nodeiter particles = 1 algo = streaming_belief_propagation infer(obs)
-
 
 anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
     p = plot(plotx, ground.(plotx), label = "")
@@ -94,4 +86,4 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
     p = plot!(x -> 5 .+ 2*pdf(Normal(dist_g.μ, dist_g.σ), x))
 end 
 
-gif(anim, "./visu/linear_sbp_1d_fps30.gif", fps = 30)
+gif(anim, "./visu/plots/linear_sbp_1d_fps30.gif", fps = 30)

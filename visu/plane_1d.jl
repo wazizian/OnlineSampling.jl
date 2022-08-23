@@ -2,23 +2,10 @@ using Random, Distributions
 using OnlineSampling
 using Pkg
 Pkg.activate("./visu/")
+using visu
 using Plots
 
-# example from https://youtu.be/aUkBa1zMKv4
-ground(x) =
-    (x >= 10) .* (
-        (1 - (x - 10) / 30) .* sin(x - 10) +
-        ((x - 10) / 30) .* sin(1.5 * (x - 10)) +
-        0.2 .* (x - 10) .* (x <= 20) +
-        2 * (x > 20)
-    ) +
-    (x <= -10) .* (
-        (1 - (-x - 10) / 30) .* sin(-x - 10) +
-        ((-x - 10) / 30) .* sin(1.5 * (-x - 10)) +
-        0.2 .* (-x - 10) .* (x >= -20) +
-        2 * (x < -20)
-    )
-#plotVectorMountains = [collect(-40:0.01:-10.01) collect(10.01:0.01:40)]
+ground = ground_sym
 plotx = collect(-40:0.01:40)
 
 # Some unceratinty parameters
@@ -58,7 +45,6 @@ end
 end
 
 N = 500
-softmax(x) = exp.(x .- maximum(x)) ./ sum(exp.(x .- maximum(x)))
 cloud_iter = @nodeiter particles = N infer(eachrow(obs))
 
 
@@ -87,4 +73,4 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter)
     quiver!(v, 5 .+ zero(prob), quiver = (zero(v), 100 * prob))
 end #every 1
 
-gif(anim, "./visu/anim_1d_fps30.gif", fps = 30)
+gif(anim, "./visu/plots/anim_1d_fps30.gif", fps = 30)
