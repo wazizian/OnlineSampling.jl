@@ -1,11 +1,13 @@
+# run this file from the root with the cmd:
+# julia --project visu/observed_rw.jl
 using OnlineSampling
 using PDMats
 using Distributions
 using LinearAlgebra
 using Pkg
 Pkg.activate("./visu/")
-using Plots
 using visu
+using Plots
 
 σ = 1e-10
 @node function observed_rw(obs)
@@ -45,12 +47,12 @@ end
 cloud_iter = @nodeiter particles = N rt = 0.0 observed_rw(obs)
 all_x, ind = compute_traj_ind(cloud_iter)
 p = create_plot(all_x, ind)
-png(p, "./visu/rw_no_resampling")
+png(p, "./visu/plots/rw_no_resampling")
 
 cloud_iter = @nodeiter particles = N rt = 1.0 observed_rw(obs)
 all_x, ind = compute_traj_ind(cloud_iter)
 p = create_plot(all_x, ind)
-png(p, "./visu/rw_with_resampling")
+png(p, "./visu/plots/rw_with_resampling")
 
 period = 50
 @node function observed_rwc(obs)
@@ -68,7 +70,7 @@ end
 cloud_iter = @nodeiter particles = N rt = 1.0 observed_rwc(obs)
 all_x, ind = compute_traj_ind(cloud_iter)
 p = create_plot(all_x, ind,period)
-png(p, "./visu/rw50_with_resampling")
+png(p, "./visu/plots/rw50_with_resampling")
 
 
 # To get exact distriburtion, 
@@ -103,7 +105,7 @@ end
 
 scatter([0,100,200,300],cumsum([0, delta_obs...]), label="")
 plot!(cumsum(all_dx), label="")
-png("./visu/rw100_bp")
+png("./visu/plots/rw100_bp")
 
 clouds = collect(Iterators.take(cloud_iter,3))
 
@@ -115,7 +117,7 @@ for (i,cloud) in enumerate(cloud_iter)
     S_full[(i-1)*block+1:(i)*block,(i-1)*block+1:(i)*block] = S
 end
 heatmap(S_full)
-png("./visu/cov_bp")
+png("./visu/plots/cov_bp")
 
 cov_bridge(s,t,T=100.0) = min(s,t) - s*t/T
 S_bridge = zeros(Float64,100,100)
@@ -125,4 +127,4 @@ for i=1:100
     end
 end
 heatmap(S_bridge)
-png("./visu/cov_bridge")
+png("./visu/plots/cov_bridge")

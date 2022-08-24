@@ -98,7 +98,7 @@ end
 
 N = 2
 t = 1000*block
-nbsimu = 100
+nbsimu = 1
 d_all = []
 d_sbp_all = []
 T_all = []
@@ -117,10 +117,10 @@ function create_name(name,block=block,N=N,nbsimu=nbsimu)
     return name*st
 end
 
-name_d_all = create_name("d_all")
-name_d_sbp_all = create_name("d_sbp_all")
-name_T_all = create_name("T_all")
-name_T_sbp_all = create_name("T_sbp_all")
+name_d_all = create_name("visu/simus/d_all")
+name_d_sbp_all = create_name("visu/simus/d_sbp_all")
+name_T_all = create_name("visu/simus/T_all")
+name_T_sbp_all = create_name("visu/simus/T_sbp_all")
 
 println("saving results at ", name_d_all)
 Serialization.serialize(name_d_all, d_all)

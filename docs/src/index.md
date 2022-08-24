@@ -11,5 +11,5 @@ Inputs and outputs are data streams, programs are stream processors.
 For such models, inference is a reactive process that returns the distribution of parameters at the current time step given the observations so far.
 
 ```@contents
-Pages = ["start.md", "library.md", "internals.md"]
+Pages = ["start.md", "visu.md", "library.md", "internals.md"]
 ```

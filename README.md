@@ -14,6 +14,10 @@ For such models, inference is a reactive process that returns the distribution o
 
 The full documentation is available at [wazizian.github.io/OnlineSampling.jl/dev](https://wazizian.github.io/OnlineSampling.jl/dev).
 
+## Overview
+
+See the video below from JuliaCon 2022 for a quick introduction to OnlineSampling.
+[![JuliaCon 2022 OnlineSampling.jl presentation](https://img.youtube.com/vi/puXsMJOc7xE/0.jpg)](https://youtu.be/puXsMJOc7xE)
 ## Example
 
 The following example is a HMM where we try to estimate the position of a moving agent from noisy observations.

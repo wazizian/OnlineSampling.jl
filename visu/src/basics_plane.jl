@@ -30,11 +30,11 @@ ground_asym(x) =
     (x>=30) .* (x-30)/15
 export ground_asym
 
-x_min = -40
-export x_min
-x_max = 60
-export x_max
-plotx = collect(x_min:0.01:x_max)
+plane_x_min = -40
+export plane_x_min
+plane_x_max = 60
+export plane_x_max
+plotx = collect(plane_x_min:0.01:plane_x_max)
 export plotx
 #plot(plotx, ground_asym.(plotx))
 
@@ -43,10 +43,10 @@ planePosX = [-35]
 export planePosX
 planePosY = [4];
 export planePosY
-measurementNoiseStdev = 0.1
-export measurementNoiseStdev
-speedStdev = 0.2
-export speedStdev
+plane_measurementNoiseStdev = 0.1
+export plane_measurementNoiseStdev
+plane_speedStdev = 0.2
+export plane_speedStdev
 
 softmax(x) = exp.(x .- maximum(x)) ./ sum(exp.(x .- maximum(x)))
 export softmax

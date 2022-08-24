@@ -1,3 +1,4 @@
+# run this file using Julia REPL
 using OnlineSampling
 using PDMats
 using Distributions
@@ -118,3 +119,15 @@ end
     (v, prob) = particles_prob(cloud)
     quiver!(x_pos_utmb.(v), 1 .+ zero(prob), quiver = (zero(v), prob))
 end
+
+@gif for (i, cloud) in enumerate(cloud_sbp_iter)
+    p = plot(polar_x_pos.(plotx), ground.(plotx), proj=:polar, label = "",showaxis=false)
+    p = scatter!(polar_x_pos.(x_pos[(i-1)*block+1]), alt[(i-1)*block+1], color = "green", proj=:polar, label = "", markersize = 5)
+    ylims!((0.0, 1.3))
+    p = plot!([polar_x_pos.(x_pos[(i-1)*block+1]); polar_x_pos.(x_pos[(i-1)*block+1])], [alt[(i-1)*block+1]; 0], lw = 2, lc = "red", proj=:polar, legend = false)
+    (v, prob) = particles_prob(cloud)
+    quiver!(polar_x_pos.(v), 1 .+ zero(prob), proj=:polar, quiver = (zero(v), 0.3*prob))
+end
+
+# to save replace @gif above by anim = @animate and uncomment:
+#gif(anim, "./visu/plots/trail_sbp_polar_fps30.gif", fps = 30)
