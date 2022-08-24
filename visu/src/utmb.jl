@@ -10,6 +10,11 @@ function x_pos_utmb(x,alt_utmb=alt_utmb)
 end
 export x_pos_utmb
 
+function polar_x_pos(x,alt_utmb=alt_utmb)
+    x_pos_utmb(x,alt_utmb)*2*π/length(alt_utmb)
+end
+export polar_x_pos
+
 function delta(x1,x2,alt_utmb=alt_utmb)
     xpos1 = x_pos_utmb(x1,alt_utmb)
     xpos2 = x_pos_utmb(x2,alt_utmb)
@@ -36,26 +41,3 @@ export y_max
 
 measurementNoiseStdev = 1/maximum(alt_utmb)
 export measurementNoiseStdev
-
-function reflectup(vect,t)
-    ind = vect .> t
-    d = vect .* ind .- t * ind
-    return vect- 2*d
-end
-
-reflectdown(vect,t) = -reflectup(-vect, -t)
-
-function reflectupd(vect,u,d)
-    new_vect = vect
-    for i=2:length(vect)
-        if (new_vect[i] > u)
-            #println(i,"utmb.jl")
-            new_vect[i-1:end] = reflectup(new_vect[i-1:end], u)
-        elseif (new_vect[i] < d)
-            #println(i,"d")
-            new_vect[i-1:end] = reflectdown(new_vect[i-1:end], d)
-        end
-    end
-    return new_vect
-end
-export reflectupd
