@@ -7,6 +7,7 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Getting Started" => "start.md",
+        "JuliaCon22" => "visu.md",
         "Library" => "library.md",
         "Internals" => "internals.md",
     ]
