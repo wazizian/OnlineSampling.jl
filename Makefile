@@ -3,6 +3,8 @@
 
 NAME=OnlineSampling
 
+JTHREADS=8
+
 install:
 	# fetches the lastest code from the github repo if possible, or install a copy of the
 	# current folder globally, changes in this folder are not reflected globally
@@ -17,11 +19,11 @@ develop:
 
 test:
 	# Full package test
-	julia -e "using Pkg; Pkg.test(\"$(NAME)\")"
+	julia -e "using Pkg; Pkg.test(\"$(NAME)\")" -t $(JTHREADS)
 
 dev_test:
 	# Development tests
-	julia --project test/conttesting.jl
+	julia --project test/conttesting.jl -t $(JTHREADS)
 
 uninstall:
 	# Uninstall package
