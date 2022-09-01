@@ -1,4 +1,4 @@
-@testset "plane" begin
+@randtestset "plane" begin
     # example from https://youtu.be/aUkBa1zMKv4
     ground(x) =
         (x >= 10) .* (
@@ -72,5 +72,5 @@
     samples1d = vec(rand(cloud1d, Nsamples))
 
     test = KSampleADTest(samples, samples1d)
-    @test_skip (pvalue(test) > 0.01) || @show test
+    @test (pvalue(test) > 0.01) || @show test
 end

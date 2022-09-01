@@ -25,6 +25,7 @@ catch UndefVarError
 end
 
 include("custom_testset.jl")
+include("randtest.jl")
 
 include(joinpath(testdir, "online_smc/utils.jl"))
 

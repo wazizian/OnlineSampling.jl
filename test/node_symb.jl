@@ -19,7 +19,7 @@ check_symb_not_realized(x) = check_symb(x) && check_not_realized(x)
 
 symb_algorithms = (delayed_sampling, belief_propagation, streaming_belief_propagation)
 
-@testset "Gaussian random walk" begin
+@randtestset "Gaussian random walk" begin
     Σ = ScalMat(1, 1.0)
     N = 1000
     Nsamples = 100
@@ -34,11 +34,11 @@ symb_algorithms = (delayed_sampling, belief_propagation, streaming_belief_propag
         cloud = @noderun T = T particles = N algo = algo f()
         samples = dropdims(rand(cloud, Nsamples); dims = 1)
         test = OneSampleADTest(samples, Normal(0.0, sqrt(T)))
-        @test_skip (pvalue(test) > 0.05) || @show (algo, test)
+        @test (pvalue(test) > 0.05) || @show (algo, test)
     end
 end
 
-@testset "Comparison 1D gaussian hmm" begin
+@randtestset "Comparison 1D gaussian hmm" begin
     N = 1000
     Nsamples = 100
     Σ = ScalMat(1, 1.0)
@@ -72,15 +72,15 @@ end
         [dropdims(rand(symb_cloud, Nsamples); dims = 1) for symb_cloud in symb_clouds]
 
     test = KSampleADTest(smc_samples, first(symb_samples))
-    @test_skip (pvalue(test) > 0.05) || @show test
+    @test (pvalue(test) > 0.05) || @show test
 
     for (algo, symb_sample) in Iterators.drop(zip(symb_algorithms, symb_samples), 1)
         test = KSampleADTest(first(symb_samples), symb_sample)
-        @test_skip (pvalue(test) > 0.05) || @show (algo, test)
+        @test (pvalue(test) > 0.05) || @show (algo, test)
     end
 end
 
-@testset "Comparison d-dim gaussian hmm" begin
+@randtestset "Comparison d-dim gaussian hmm" begin
     N = 5000
     Nsamples = 1000
     dim = 2
@@ -139,12 +139,12 @@ end
     for (algo, symb_sample) in Iterators.drop(zip(symb_algorithms, symb_samples), 1)
         for test in tests
             result = test(first(symb_samples)', symb_sample')
-            @test_skip (pvalue(result) > 0.05) || @show (algo, result)
+            @test (pvalue(result) > 0.05) || @show (algo, result)
         end
     end
 end
 
-@testset "coin flip" begin
+@randtestset "coin flip" begin
     N = 1000
     T = 1000
 
@@ -184,7 +184,7 @@ end
     end
 end
 
-@testset "Binomial samples" begin
+@randtestset "Binomial samples" begin
     n = 100
     T = 1000
     @node function model()

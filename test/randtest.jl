@@ -4,8 +4,8 @@ import Test: record, finish
 using MacroTools
 using Base: AbstractLock, ReentrantLock
 
-const REPEAT = 10
-const REQUIRE = 7
+const REPEAT = 1
+const REQUIRE = 1
 
 macro randtestset(args...)
     isempty(args) && error("No arguments to @randtestset")
