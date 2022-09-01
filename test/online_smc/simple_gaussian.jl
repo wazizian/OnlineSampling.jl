@@ -34,8 +34,8 @@ end
     new_cloud = OnlineSMC.smc_step(proposal!, resample_threshold, cloud)
 
     target = MvNormal([3 / 11], ScalMat(1, 2 / 11))
-    @test mean(new_cloud) ≈ mean(target) rtol = 0.05
-    @test cov(new_cloud) ≈ cov(target) rtol = 0.05
+    @test mean(new_cloud) ≈ mean(target) rtol = rtol
+    @test cov(new_cloud) ≈ cov(target) rtol = rtol
 
     samples = dropdims(rand(new_cloud, Nsamples); dims = 1)
     @test mean(samples) ≈ only(mean(target)) atol = atol
@@ -43,10 +43,10 @@ end
 
     test =
         OneSampleADTest(samples, Normal((only ∘ mean)(target), (sqrt ∘ only ∘ cov)(target)))
-    @test_skip (pvalue(test) > 0.01) || @show test
+    @test (pvalue(test) > 0.05) || @show test
 end
 
-@testset "iterate gaussians" begin
+@randtestset "iterate gaussians" begin
     # Model
     # X_1 ∼ N(0, 1)
     # X_{t+1} ∼ N(X_t, 1)
@@ -75,9 +75,9 @@ end
 
     samples = dropdims(rand(cloud, Nsamples); dims = 1)
     @test mean(samples) ≈ only(mean(target)) atol = atol
-    @test var(samples) ≈ only(cov(target)) atol = 2 * atol
+    @test var(samples) ≈ only(cov(target)) atol = atol
 
     test =
         OneSampleADTest(samples, Normal((only ∘ mean)(target), (sqrt ∘ only ∘ cov)(target)))
-    @test_skip (pvalue(test) > 0.01) || @show test
+    @test (pvalue(test) > 0.05) || @show test
 end
