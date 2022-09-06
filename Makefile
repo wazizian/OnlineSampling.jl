@@ -3,7 +3,7 @@
 
 NAME=OnlineSampling
 
-JTHREADS=8
+JTHREADS=10
 
 install:
 	# fetches the lastest code from the github repo if possible, or install a copy of the
