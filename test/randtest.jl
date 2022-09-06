@@ -17,7 +17,7 @@ macro randtestset(args...)
     repeat_expr = :($REPEAT)
     require_expr = :($REQUIRE)
 
-    args = filter(args) do arg
+    args = Base.filter(args) do arg
         @capture(arg, repeat = val_) && (repeat_expr = esc(val)) && return false
         @capture(arg, require = val_) && (require_expr = esc(val)) && return false
         return true
