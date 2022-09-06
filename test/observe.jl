@@ -55,6 +55,16 @@ end
     @noderun T = 3 h(obs)
 end
 
+@testset "offset obs" begin
+    @node function f()
+        x = rand(Normal())
+        y = 1
+        @observe(x+y, 0)
+    end
+
+    @noderun T=1 f()
+end
+
 @testset "gaussian hmm" begin
     Σ = ScalMat(1, 1.0)
     @node function model()
@@ -174,14 +184,15 @@ const trans_test = [5.0]
 const mult_test = 2.0 * I(1)
 @testset "operations on trackedobs" begin
     x0 =
-        OnlineSampling.TrackedObservation{Vector{Float64},Multivariate,Continuous,IsoNormal}(
+        OnlineSampling.TrackedObservation(
             [5.1],
             MvNormal([10.0], ScalMat(1, 1.0)),
         )
 
     fun_test(z::typeof(x0)) = z + trans_test
     v_sum = OnlineSampling.irpass(fun_test, x0)
-    @test v_sum == trans_test + OnlineSampling.value(x0)
+    @test v_sum isa OnlineSampling.TrackedObservation
+    @test OnlineSampling.value(v_sum) == trans_test + OnlineSampling.value(x0)
 
     fun_test2(z::typeof(x0)) = mult_test * z
     v_mult = OnlineSampling.irpass(fun_test2, x0)

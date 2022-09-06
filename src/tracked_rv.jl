@@ -83,18 +83,25 @@ ConstructionBase.constructorof(
 ) where {T,G<:GraphicalModel,I,F,S,D<:Distribution{F,S}} = Tracker{T,G,I,F,S,D}
 
 """
-    Instantiate a tracker
+    Gte the type of a sample from a Distribution
 """
-function Tracker(gm::GraphicalModel, id, template_d::D) where {F,S,D<:Distribution{F,S}}
-    G = typeof(gm)
-    elt = Base.eltype(template_d)
-    T = if F == Multivariate
+function sampletype(d::D) where {F,S,D<:Distribution{F,S}}
+    elt = eltype(d)
+    if F == Multivariate
         AbstractVector{elt}
     elseif F == Matrixvariate
         AbstractMatrix{elt}
     else # F == Univariate
         elt
     end
+end
+
+"""
+    Instantiate a tracker
+"""
+function Tracker(gm::GraphicalModel, id, template_d::D) where {F,S,D<:Distribution{F,S}}
+    G = typeof(gm)
+    T = sampletype(template_d)
     I = typeof(id)
     return Tracker{T,G,I,F,S,D}(gm, id)
 end
