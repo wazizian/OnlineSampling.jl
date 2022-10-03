@@ -17,18 +17,11 @@ splittedpath = splitpath(testdir)
 splittedpath[end] = "examples"
 examplesdir = joinpath(splittedpath)
 
-try
-    _ = exit_on_error
-catch UndefVarError
-    global exit_on_error
-    exit_on_error = false
-end
-
-include("custom_testset.jl")
+include("randtest.jl")
 
 include(joinpath(testdir, "online_smc/utils.jl"))
 
-@testset TS exit_on_error = exit_on_error "OnlineSampling.jl" begin
+@testset "OnlineSampling.jl" begin
     @testset "cd gaussian" begin
         include(joinpath(testdir, "cond_distr/cd_gaussian.jl"))
     end

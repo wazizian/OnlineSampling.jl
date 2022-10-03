@@ -60,7 +60,7 @@ end
     @test d ≈ MvNormal([1.0], ScalMat(1, 11.0))
 end
 
-@testset "Sample child" begin
+@randtestset "Sample child" begin
     gm = DS.GraphicalModel(Int)
     @test DS.is_inv_sat(gm)
 

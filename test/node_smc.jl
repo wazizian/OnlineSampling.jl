@@ -41,7 +41,7 @@ end
     @noderun T = 5 main(eachrow(obs))
 end
 
-@testset "comparison gaussian hmm" begin
+@randtestset "comparison gaussian hmm" begin
     N = 10000
     Nsamples = 1000
 
@@ -77,11 +77,10 @@ end
     smc_samples = dropdims(rand(smc_cloud, Nsamples); dims = 1)
 
     test = KSampleADTest(node_samples, smc_samples)
-    @test_skip (pvalue(test) > 0.01) || @show test
+    @test (pvalue(test) > 0.05) || @show test
 end
 
-
-@testset "comparison scalar gaussian hmm" begin
+@randtestset "comparison scalar gaussian hmm" begin
     N = 10000
     Nsamples = 1000
     drift_x = 1.0
@@ -126,5 +125,5 @@ end
     node_samples1d = vec(rand(node_cloud1d, Nsamples))
 
     test = KSampleADTest(node_samples, node_samples1d)
-    @test_skip (pvalue(test) > 0.01) || @show test
+    @test (pvalue(test) > 0.05) || @show test
 end

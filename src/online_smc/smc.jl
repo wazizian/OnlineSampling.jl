@@ -52,7 +52,7 @@ function smc_step(
     rng::Random.AbstractRNG = Random.GLOBAL_RNG,
     #adaptativeresampler::ResampleWithESSThreshold = ResampleWithESSThreshold(),
 ) where {F<:Function,N}
-    adaptativeresampler = ResampleWithESSThreshold(resample_threshold)
+    adaptativeresampler = ResampleWithESSThreshold(resample_systematic, resample_threshold)
     log_hat_weights, chosen_particles = resample(rng, adaptativeresampler, cloud)
     new_particles = sample_next(rng, proposal!, chosen_particles, args...)
     new_logweights = next_logweights(log_hat_weights, new_particles)

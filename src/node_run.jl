@@ -95,7 +95,7 @@ function node_iter(macro_args...)
     code = quote
         let $argsiter_symb = $argsiter_expr,
             $len_symb = minimum(
-                filter(!isnothing, ($(esc(n_iterations_expr)), $argsiter_len_expr)),
+                Base.filter(!isnothing, ($(esc(n_iterations_expr)), $argsiter_len_expr)),
             )
 
             NodeCall($(esc(f)), SamplingCtx(), $len_symb, $argsiter_symb)
