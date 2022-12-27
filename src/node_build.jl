@@ -32,12 +32,16 @@ end
     Replace calls to rand with [internal_rand](@ref)
 """
 function treat_rand_calls(ctx_symb::Symbol, body::Expr)
-    return postwalk(body) do ex
+    rand_vars = Set{Symbol}()
+    new_body = postwalk(body) do ex
         @capture(ex, rand(d_)) || return ex
+        @gensym rand_var_symb
+        push!(rand_vars, rand_var_symb)
         return quote
-            $(@__MODULE__).internal_rand($(ctx_symb), $(d))
+            $rand_var_symb = $(@__MODULE__).internal_rand($(ctx_symb), $(d))
         end
     end
+    return rand_vars, new_body
 end
 
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
@@ -258,10 +262,10 @@ function node_build(splitted)
 
     # common pass
     @gensym inner_reset_symb
-    stored_vars, new_body = @chain body begin
+    rand_vars, new_body = treat_rand_calls(ctx_symb, body)
+    stored_vars, new_body = @chain new_body begin
         push_front(init_ll, _)
         treat_observe_calls
-        treat_rand_calls(ctx_symb, _)
         treat_node_calls(ctx_symb, _)
         treat_loglikelihood_updates(ll_symb, _)
         collect_stored_variables(state_symb, inner_reset_symb, _)
