@@ -97,6 +97,7 @@ end
     obs = [[1.0], [2.0], [3.0]]
 
     @test_throws OnlineSampling.UntrackedObservation @noderun T = 3 f(obs)
+
     @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 algo =
         delayed_sampling T = 3 f(obs)
     @test_throws OnlineSampling.UntrackedObservation @noderun particles = 1 algo =
@@ -111,8 +112,6 @@ end
         return z
     end
     obs = [[1.0], [2.0], [3.0]]
-
-    @noderun T = 3 f(obs)
     @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 algo =
         delayed_sampling T = 3 f(obs)
     @test_throws OnlineSampling.RealizedObservation @noderun particles = 1 algo =

@@ -30,6 +30,8 @@ using InteractiveUtils
 
 using Reexport
 
+using MyDebugTools
+
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
 import ..CondDistr: CdMvNormal, CdNormal, CdBernoulli, CdBinomial
@@ -84,7 +86,7 @@ export @node,
     delayed_sampling,
     belief_propagation,
     streaming_belief_propagation
-    
+
 using Pkg
 
 function __init__()

@@ -5,8 +5,8 @@ using MacroTools
 using Base: AbstractLock, ReentrantLock
 using Accessors
 
-const REPEAT = 10
-const REQUIRE = 7
+const REPEAT = 5
+const REQUIRE = 2
 
 const REP_SYMB = :__RANDTESTREPEAT__
 

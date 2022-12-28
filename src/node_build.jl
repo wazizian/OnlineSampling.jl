@@ -1,13 +1,10 @@
 """
-    Replace [@observe](@ref) statements with calls to [internal_observe](@ref)
-    Note that it must be called before the pass on nodes.
+   Remove [@observe](@ref) calls during replays
 """
-function treat_observe_calls(body::Expr)
+function remove_observe_calls(body::Expr)
     return postwalk(body) do ex
         @capture(ex, (@observe var_ val_) | (@observe(var_, val_))) || return ex
-        return quote
-            @nodecall $(@__MODULE__).observe($(var), $(val))
-        end
+        return quote end
     end
 end
 
@@ -15,6 +12,21 @@ end
     Global reference to the shadow function `internal_update_loglikelihood`
 """
 const loglikelihoodCall = :($(Symbol(@__MODULE__)).internal_update_loglikelihood)
+
+"""
+    Replace [@observe](@ref) statements with calls to [internal_observe](@ref)
+    Note that it must be called before the pass on nodes.
+"""
+function treat_observe_calls(body::Expr)
+    @gensym ll
+    return postwalk(body) do ex
+        @capture(ex, (@observe var_ val_) | (@observe(var_, val_))) || return ex
+        return quote
+            $ll = $(@__MODULE__).internal_observe($var, $val)
+            $(loglikelihoodCall)($ll)
+        end
+    end
+end
 
 """
     Replace `internal_update_loglikelihood` with an actual loglikelihood update
@@ -29,19 +41,33 @@ function treat_loglikelihood_updates(llsymb::Symbol, body::Expr)
 end
 
 """
-    Replace calls to rand with [internal_rand](@ref)
+    Replace calls to rand with [internal_rand](@ref) and collect variable names
 """
-function treat_rand_calls(ctx_symb::Symbol, body::Expr)
-    rand_vars = Set{Symbol}()
-    new_body = postwalk(body) do ex
+function treat_rand_calls(ctx_symb::Symbol, store_rand::Bool, replay_rand::Bool, body::Expr)
+    return postwalk(body) do ex
         @capture(ex, rand(d_)) || return ex
         @gensym rand_var_symb
-        push!(rand_vars, rand_var_symb)
-        return quote
-            $rand_var_symb = $(@__MODULE__).internal_rand($(ctx_symb), $(d))
+        rand_code = quote
+            $rand_var_symb = $(@__MODULE__).internal_rand($ctx_symb, $d)
+        end
+        if store_rand
+            store_rand_code = quote
+                $(@__MODULE__).store_rand_var!($ctx_symb, $(QuoteNode(rand_var_symb)), $rand_var_symb)
+                $rand_var_symb
+            end
+            return push_front(rand_code, store_rand_code)
+        elseif replay_rand
+            @gensym replay_rand_var
+            replay_rand_code = quote
+                $replay_rand_var = $(@__MODULE__).get_stored_rand_var($ctx_symb, $(QuoteNode(rand_var_symb)))
+                @observe($rand_var_symb, $replay_rand_var)
+                $replay_rand_var
+            end
+            return push_front(rand_code, replay_rand_code)
+        else
+            return rand_code
         end
     end
-    return rand_vars, new_body
 end
 
 function treat_initialized_vars(reset::Bool, body::Expr)::Expr
@@ -120,7 +146,6 @@ function build_smc_call(toplevel, marg, node_particles, algo, f, resample_thresh
         end,
     )
 end
-
 
 """
     Handle `@nodecall` calls.
@@ -243,6 +268,35 @@ node_marker() = nothing
 node_no_reset_marker() = nothing
 node_reset_marker() = nothing
 
+function common_body(ctx_symb::Symbol, ll_symb::Symbol, body::Expr)
+    init_ll = :($(ll_symb)::Float64 = 0.0)
+    return @chain body begin
+        push_front(init_ll, _)
+        treat_node_calls(ctx_symb, _)
+    end
+end
+
+function make_body(state_symb::Symbol, ctx_symb::Symbol, ll_symb::Symbol, inner_reset_symb::Symbol, reset::Bool, store_rand::Bool, replay_rand::Bool, body::Expr)
+    @assert !reset || (!store_rand && !replay_rand)
+    @assert !store_rand || !replay_rand    
+
+    marker = reset ? :($(@__MODULE__).node_reset_marker()) : :($(@__MODULE__).node_no_reset_marker())
+
+    return @chain body begin
+        replay_rand ? remove_observe_calls(_) : _
+        treat_rand_calls(ctx_symb, store_rand, replay_rand, _)
+        treat_observe_calls
+        treat_loglikelihood_updates(ll_symb, _)
+        stored_vars, _ = collect_stored_variables(state_symb, inner_reset_symb, _)
+        fetch_stored_variables(state_symb, reset, _[2])
+        augment_returns(stored_vars, ll_symb, _)
+        treat_initialized_vars(reset, _)
+        push_front(:($(inner_reset_symb) = $reset), _)
+        push_front(marker, _)
+        # @aside sh(_)
+    end
+end
+
 function node_build(splitted)
     node_name = splitted[:name]
     body = splitted[:body]
@@ -258,42 +312,22 @@ function node_build(splitted)
 
     # loglikelihood
     @gensym ll_symb
-    init_ll = :($(ll_symb)::Float64 = 0.0)
-
-    # common pass
+    
+    # reset var
     @gensym inner_reset_symb
-    rand_vars, new_body = treat_rand_calls(ctx_symb, body)
-    stored_vars, new_body = @chain new_body begin
-        push_front(init_ll, _)
-        treat_observe_calls
-        treat_node_calls(ctx_symb, _)
-        treat_loglikelihood_updates(ll_symb, _)
-        collect_stored_variables(state_symb, inner_reset_symb, _)
-    end
 
-    # not reset pass
-    no_reset_body = @chain new_body begin
-        fetch_stored_variables(state_symb, false, _)
-        augment_returns(stored_vars, ll_symb, _)
-        treat_initialized_vars(false, _)
-        push_front(:($(inner_reset_symb) = false), _)
-        push_front(:($(@__MODULE__).node_no_reset_marker()), _)
-    end
+    new_body = common_body(ctx_symb, ll_symb, body)
 
-    # reset pass
-    reset_body = @chain new_body begin
-        fetch_stored_variables(state_symb, true, _)
-        augment_returns(stored_vars, ll_symb, _)
-        treat_initialized_vars(true, _)
-        push_front(:($(inner_reset_symb) = true), _)
-        push_front(:($(@__MODULE__).node_reset_marker()), _)
-    end
+    no_reset_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, false, false, false, new_body)
+    store_rand_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, false, true, false, new_body)
+    replay_rand_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, false, false, true, new_body)
+    reset_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, true, false, false, new_body)
 
     # Create inner functions
     name = splitted[:name]
     insert!(splitted[:args], 1, :($(ctx_symb)::$(@__MODULE__).SamplingCtx))
 
-    @gensym no_reset_inner_name reset_inner_name
+    @gensym no_reset_inner_name store_rand_inner_name replay_rand_inner_name reset_inner_name
 
     # Create reset function
     splitted[:body] = reset_body
@@ -305,6 +339,16 @@ function node_build(splitted)
     splitted[:name] = no_reset_inner_name
     insert!(splitted[:args], 1, :($(state_symb)))
     no_reset_inner_func = combinedef(splitted)
+
+    # Create store_rand function
+    splitted[:body] = store_rand_body
+    splitted[:name] = store_rand_inner_name
+    store_rand_inner_func = combinedef(splitted)
+
+    # Create replay_rand function
+    splitted[:body] = replay_rand_body
+    splitted[:name] = replay_rand_inner_name
+    replay_rand_inner_func = combinedef(splitted)
 
     # Create inner function calls
     # Remove type annotation in arg
@@ -319,9 +363,21 @@ function node_build(splitted)
                 $(splitted[:args][2:end]...);
                 $(splitted[:kwargs]...),
             )
-        else
+        elseif !$(@__MODULE__).is_jointPF($ctx_symb)
             $(@__MODULE__).irpass(
                 $(no_reset_inner_name),
+                $(splitted[:args]...);
+                $(splitted[:kwargs]...),
+            )
+        elseif $(@__MODULE__).is_jointPF_store($ctx_symb)
+            $(@__MODULE__).irpass(
+                $(store_rand_inner_name),
+                $(splitted[:args]...);
+                $(splitted[:kwargs]...),
+            )
+        else 
+            $(@__MODULE__).irpass(
+                $(replay_rand_inner_name),
                 $(splitted[:args]...);
                 $(splitted[:kwargs]...),
             )
@@ -343,6 +399,8 @@ function node_build(splitted)
 
     code = esc(quote
         $(no_reset_inner_func)
+        $(store_rand_inner_func)
+        $(replay_rand_inner_func)
         $(reset_inner_func)
         # Redirect documentation of @node definitions
         Core.@__doc__($(outer_func))

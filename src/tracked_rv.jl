@@ -22,7 +22,32 @@ struct SBPOnCtx <: SamplingCtx
 end
 SBPOnCtx() = SBPOnCtx(SBP.GraphicalModel())
 
+struct JointPFCtx <: SamplingCtx
+    replay::Bool
+    store::Dict{Symbol, Any}
+end
+JointPFCtx() = JointPFCtx(false, Dict{Symbol, Any}())
+
+is_jointPF(ctx::JointPFCtx) = true
+is_jointPF(::SamplingCtx) = false
+
+is_jointPF_store(ctx::JointPFCtx) = !(ctx.replay)
+is_jointPF_store(::SamplingCtx) = false
+
+@inline function get_stored_rand_var(ctx::JointPFCtx, var::Symbol)
+    @assert ctx.replay
+    return store[var]
+end
+
+@inline function store_rand_var!(ctx::JointPFCtx, var::Symbol, val)
+    @assert ctx.replay
+    store[var] = val
+end
+
+Base.empty!(ctx::JointPFCtx) = empty!(ctx.dict)
+
 const OnCtx = Union{DSOnCtx,BPOnCtx,SBPOnCtx}
+const PFCtx = Union{OffCtx, JointPFCtx}
 const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel,SBP.GraphicalModel}
 
 """
@@ -32,12 +57,14 @@ Can be one of:
 - `delayed_sampling`
 - `belief_propagation`
 - `streaming_belief_propagation`
+- `joint_particle_filter`
 """
 @enum Algorithms begin
     particle_filter
     delayed_sampling
     belief_propagation
     streaming_belief_propagation
+    joint_particle_filter
 end
 
 """
@@ -47,6 +74,7 @@ function choose_ctx_type(algo::Algorithms)
     (algo == delayed_sampling) && return DSOnCtx
     (algo == belief_propagation) && return BPOnCtx
     (algo == streaming_belief_propagation) && return SBPOnCtx
+    (algo == joint_particle_filter) && return JointPFCtx
     return OffCtx
 end
 
@@ -309,5 +337,5 @@ Distributions.Binomial(
 """
     Wraps a sampled value, and dispact to [track_rv](@ref) is delayed sampling is enabled
 """
-internal_rand(::OffCtx, d::Distribution) = TrackedObservation(rand(d), d)
+internal_rand(::PFCtx, d::Distribution) = TrackedObservation(rand(d), d)
 internal_rand(ctx::OnCtx, d) = track_rv(ctx.gm, d)

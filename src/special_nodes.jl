@@ -31,6 +31,7 @@ end
     Calls [internal_observe](@ref) and [internal_update_loglikelihood](@ref)
 """
 @node function observe(var, obs)
+    Base.depwarn("The node observe is deprecated", :iterate_obs, force = true)
     ll = internal_observe(var, obs)
     OnlineSampling.internal_update_loglikelihood(ll)
 end
