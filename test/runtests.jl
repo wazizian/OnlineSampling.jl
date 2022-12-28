@@ -64,9 +64,9 @@ include(joinpath(testdir, "online_smc/utils.jl"))
     @testset "synchronous constructs" begin
         include(joinpath(testdir, "simple_synchronous.jl"))
     end
-     @testset "observe" begin
-         include(joinpath(testdir, "observe.jl"))
-     end
+    @testset "observe" begin
+        include(joinpath(testdir, "observe.jl"))
+    end
     @testset "node smc" begin
         include(joinpath(testdir, "node_smc.jl"))
     end

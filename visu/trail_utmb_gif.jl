@@ -9,7 +9,7 @@ plotx = plotx_utmb
 @node function true_trail()
     @init x = startPosX
     @init speed = M_speed
-    speed = rand(MvNormal(@prev(speed), ScalMat(1,var_speed)))
+    speed = rand(MvNormal(@prev(speed), ScalMat(1, var_speed)))
     x = @prev(x) + speed
     h = ground.(x)
     h_r = rand(MvNormal(h, ScalMat(1, measurementNoiseStdev^2)))
@@ -28,14 +28,24 @@ plot([(x[1]) for x in x_pos], [s[1] for s in current_speed], label = "")
 
 plot([(x[1]) for x in x_pos], [o[1] for o in obs] .- [ground(x[1]) for x in x_pos])
 
-@gif for (i,t) in enumerate(traj)
+@gif for (i, t) in enumerate(traj)
     p = plot(plotx, ground.(plotx), label = "")
     p = scatter!(x_pos_utmb.(x_pos[i]), obs[i], color = "green", label = "", markersize = 5)
     p = scatter!(x_pos_utmb.(x_pos[i]), 0, color = "red", label = "")
     #xlims!((x_min, x_max))
     ylims!((0.0, y_max))
-    p = plot!([x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])], [alt[i]; 0], lw = 2, lc = "red", legend = false)
-    p = plot!([x_pos_utmb(x[1]) for x in x_pos],[2+s[1]/40 for s in current_speed], label = "")
+    p = plot!(
+        [x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])],
+        [alt[i]; 0],
+        lw = 2,
+        lc = "red",
+        legend = false,
+    )
+    p = plot!(
+        [x_pos_utmb(x[1]) for x in x_pos],
+        [2 + s[1] / 40 for s in current_speed],
+        label = "",
+    )
 end
 
 #gif(anim, "./visu/trail_speed_fps30.gif", fps = 30)
@@ -64,7 +74,13 @@ cloud_iter = @nodeiter particles = N infer(obs)
     p = scatter!(x_pos_utmb.(x_pos[i]), 0, color = "red", label = "")
     #xlims!((x_min, x_max))
     ylims!((0.0, y_max))
-    p = plot!([x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])], [alt[i]; 0], lw = 2, lc = "red", legend = false)
+    p = plot!(
+        [x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])],
+        [alt[i]; 0],
+        lw = 2,
+        lc = "red",
+        legend = false,
+    )
     (v, prob) = particles_prob(cloud)
     #append!(estimated_pos, expectation(identity, cloud))
     #append!(squared_pos, expectation(x->x.^2, cloud))
@@ -90,7 +106,13 @@ cloud_true_iter = @nodeiter particles = N infer_true(obs)
     p = scatter!(x_pos_utmb.(x_pos[i]), 0, color = "red", label = "")
     #xlims!((x_min, x_max))
     ylims!((0.0, y_max))
-    p = plot!([x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])], [alt[i]; 0], lw = 2, lc = "red", legend = false)
+    p = plot!(
+        [x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])],
+        [alt[i]; 0],
+        lw = 2,
+        lc = "red",
+        legend = false,
+    )
     (v, prob) = particles_prob(cloud)
     #append!(estimated_pos, expectation(identity, cloud))
     #append!(squared_pos, expectation(x->x.^2, cloud))
@@ -122,14 +144,21 @@ cloud_speed_iter = @nodeiter particles = N infer_speed(obs)
     p = scatter!(x_pos_utmb.(x_pos[i]), 0, color = "red", label = "")
     #xlims!((x_min, x_max))
     ylims!((0.0, y_max))
-    p = plot!([x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])], [alt[i]; 0], lw = 2, lc = "red", legend = false)
+    p = plot!(
+        [x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])],
+        [alt[i]; 0],
+        lw = 2,
+        lc = "red",
+        legend = false,
+    )
     (v, prob) = particles_prob(cloud)
     #append!(estimated_pos, expectation(identity, cloud))
     #append!(squared_pos, expectation(x->x.^2, cloud))
     quiver!(x_pos_utmb.(v), 2 .+ zero(prob), quiver = (zero(v), prob))
 end
 
-cloud_speedsbp_iter = @nodeiter particles = N algo = streaming_belief_propagation infer_speed(obs)
+cloud_speedsbp_iter =
+    @nodeiter particles = N algo = streaming_belief_propagation infer_speed(obs)
 #cloud = collect(Iterators.take(cloud_speedsbp_iter,4))
 
 @gif for (i, cloud) in enumerate(cloud_speedsbp_iter)
@@ -138,7 +167,13 @@ cloud_speedsbp_iter = @nodeiter particles = N algo = streaming_belief_propagatio
     p = scatter!(x_pos_utmb.(x_pos[i]), 0, color = "red", label = "")
     #xlims!((x_min, x_max))
     ylims!((0.0, y_max))
-    p = plot!([x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])], [alt[i]; 0], lw = 2, lc = "red", legend = false)
+    p = plot!(
+        [x_pos_utmb.(x_pos[i]); x_pos_utmb.(x_pos[i])],
+        [alt[i]; 0],
+        lw = 2,
+        lc = "red",
+        legend = false,
+    )
     (v, prob) = particles_prob(cloud)
     #append!(estimated_pos, expectation(identity, cloud))
     #append!(squared_pos, expectation(x->x.^2, cloud))
@@ -149,15 +184,15 @@ function estimate_pos(cloud_iter)
     estimated_pos = []
     var_pos = []
     for cloud in cloud_iter
-        current_mean = expectation(x-> x[1], cloud)
+        current_mean = expectation(x -> x[1], cloud)
         append!(estimated_pos, current_mean)
-        append!(var_pos, expectation(x->delta.(x[1],current_mean)[1]^2, cloud))
+        append!(var_pos, expectation(x -> delta.(x[1], current_mean)[1]^2, cloud))
     end
     return estimated_pos, var_pos
 end
 
 est_speedsbp, var_speedsbp = estimate_pos(cloud_speedsbp_iter)
-diff = [delta(x[1],e) for (x,e) in zip(x_pos,est_speedsbp)]
+diff = [delta(x[1], e) for (x, e) in zip(x_pos, est_speedsbp)]
 plot(diff)
 
 plot!(var_speedsbp)
@@ -165,7 +200,7 @@ plot!(var_speedsbp)
 plot(cumsum(diff))
 
 est_speed, var_speed = estimate_pos(cloud_speed_iter)
-diff_speed = [delta(x[1],e) for (x,e) in zip(x_pos,est_speed)]
+diff_speed = [delta(x[1], e) for (x, e) in zip(x_pos, est_speed)]
 plot(diff_speed)
 plot(cumsum(diff))
 plot!(cumsum(diff_speed))

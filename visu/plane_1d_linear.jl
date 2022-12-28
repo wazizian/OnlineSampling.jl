@@ -62,12 +62,11 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter)
     )
     (v, prob) = particles_prob(cloud)
     quiver!(v, 5 .+ zero(prob), quiver = (zero(v), 100 * prob))
-end 
+end
 
 gif(anim, "./visu/plots/linear_1d_fps30.gif", fps = 30)
 
-cloud_iter_sbp =
-    @nodeiter particles = 1 algo = streaming_belief_propagation infer(obs)
+cloud_iter_sbp = @nodeiter particles = 1 algo = streaming_belief_propagation infer(obs)
 
 anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
     p = plot(plotx, ground.(plotx), label = "")
@@ -83,7 +82,7 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
         legend = false,
     )
     dist_g = dist(cloud.particles[1])
-    p = plot!(x -> 5 .+ 2*pdf(Normal(dist_g.μ, dist_g.σ), x))
-end 
+    p = plot!(x -> 5 .+ 2 * pdf(Normal(dist_g.μ, dist_g.σ), x))
+end
 
 gif(anim, "./visu/plots/linear_sbp_1d_fps30.gif", fps = 30)

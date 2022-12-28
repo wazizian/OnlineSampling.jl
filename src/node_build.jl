@@ -52,14 +52,21 @@ function treat_rand_calls(ctx_symb::Symbol, store_rand::Bool, replay_rand::Bool,
         end
         if store_rand
             store_rand_code = quote
-                $(@__MODULE__).store_rand_var!($ctx_symb, $(QuoteNode(rand_var_symb)), $rand_var_symb)
+                $(@__MODULE__).store_rand_var!(
+                    $ctx_symb,
+                    $(QuoteNode(rand_var_symb)),
+                    $rand_var_symb,
+                )
                 $rand_var_symb
             end
             return push_front(rand_code, store_rand_code)
         elseif replay_rand
             @gensym replay_rand_var
             replay_rand_code = quote
-                $replay_rand_var = $(@__MODULE__).get_stored_rand_var($ctx_symb, $(QuoteNode(rand_var_symb)))
+                $replay_rand_var = $(@__MODULE__).get_stored_rand_var(
+                    $ctx_symb,
+                    $(QuoteNode(rand_var_symb)),
+                )
                 @observe($rand_var_symb, $replay_rand_var)
                 $replay_rand_var
             end
@@ -122,7 +129,15 @@ end
 """
     Build a call to the SMC as a node call
 """
-function build_smc_call(toplevel, marg, node_particles, algo, f, resample_threshold, args...;)
+function build_smc_call(
+    toplevel,
+    marg,
+    node_particles,
+    algo,
+    f,
+    resample_threshold,
+    args...;
+)
     macrosymb = toplevel ? Symbol("@nodeiter") : Symbol("@nodecall")
     wrap_func = toplevel ? :($(@__MODULE__).cst) : :(identity)
     symbval = :($(@__MODULE__).choose_ctx_type($algo))
@@ -171,7 +186,15 @@ function treat_node_calls(ctxsymb::Symbol, body::Expr)
         end
 
         if node_particles != :(0)
-            smc_call = build_smc_call(false, reset_cond, node_particles, algo, f, resample_threshold, args...)
+            smc_call = build_smc_call(
+                false,
+                reset_cond,
+                node_particles,
+                algo,
+                f,
+                resample_threshold,
+                args...,
+            )
             return quote
                 begin
                     # The fact that we used prewalk and inserted a begin...end block here
@@ -276,11 +299,22 @@ function common_body(ctx_symb::Symbol, ll_symb::Symbol, body::Expr)
     end
 end
 
-function make_body(state_symb::Symbol, ctx_symb::Symbol, ll_symb::Symbol, inner_reset_symb::Symbol, reset::Bool, store_rand::Bool, replay_rand::Bool, body::Expr)
+function make_body(
+    state_symb::Symbol,
+    ctx_symb::Symbol,
+    ll_symb::Symbol,
+    inner_reset_symb::Symbol,
+    reset::Bool,
+    store_rand::Bool,
+    replay_rand::Bool,
+    body::Expr,
+)
     @assert !reset || (!store_rand && !replay_rand)
-    @assert !store_rand || !replay_rand    
+    @assert !store_rand || !replay_rand
 
-    marker = reset ? :($(@__MODULE__).node_reset_marker()) : :($(@__MODULE__).node_no_reset_marker())
+    marker =
+        reset ? :($(@__MODULE__).node_reset_marker()) :
+        :($(@__MODULE__).node_no_reset_marker())
 
     return @chain body begin
         replay_rand ? remove_observe_calls(_) : _
@@ -312,16 +346,52 @@ function node_build(splitted)
 
     # loglikelihood
     @gensym ll_symb
-    
+
     # reset var
     @gensym inner_reset_symb
 
     new_body = common_body(ctx_symb, ll_symb, body)
 
-    no_reset_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, false, false, false, new_body)
-    store_rand_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, false, true, false, new_body)
-    replay_rand_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, false, false, true, new_body)
-    reset_body = make_body(state_symb, ctx_symb, ll_symb, inner_reset_symb, true, false, false, new_body)
+    no_reset_body = make_body(
+        state_symb,
+        ctx_symb,
+        ll_symb,
+        inner_reset_symb,
+        false,
+        false,
+        false,
+        new_body,
+    )
+    store_rand_body = make_body(
+        state_symb,
+        ctx_symb,
+        ll_symb,
+        inner_reset_symb,
+        false,
+        true,
+        false,
+        new_body,
+    )
+    replay_rand_body = make_body(
+        state_symb,
+        ctx_symb,
+        ll_symb,
+        inner_reset_symb,
+        false,
+        false,
+        true,
+        new_body,
+    )
+    reset_body = make_body(
+        state_symb,
+        ctx_symb,
+        ll_symb,
+        inner_reset_symb,
+        true,
+        false,
+        false,
+        new_body,
+    )
 
     # Create inner functions
     name = splitted[:name]
@@ -375,7 +445,7 @@ function node_build(splitted)
                 $(splitted[:args]...);
                 $(splitted[:kwargs]...),
             )
-        else 
+        else
             $(@__MODULE__).irpass(
                 $(replay_rand_inner_name),
                 $(splitted[:args]...);

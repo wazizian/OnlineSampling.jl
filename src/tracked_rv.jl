@@ -24,9 +24,9 @@ SBPOnCtx() = SBPOnCtx(SBP.GraphicalModel())
 
 struct JointPFCtx <: SamplingCtx
     replay::Bool
-    store::Dict{Symbol, Any}
+    store::Dict{Symbol,Any}
 end
-JointPFCtx() = JointPFCtx(false, Dict{Symbol, Any}())
+JointPFCtx() = JointPFCtx(false, Dict{Symbol,Any}())
 
 is_jointPF(ctx::JointPFCtx) = true
 is_jointPF(::SamplingCtx) = false
@@ -47,7 +47,7 @@ end
 Base.empty!(ctx::JointPFCtx) = empty!(ctx.dict)
 
 const OnCtx = Union{DSOnCtx,BPOnCtx,SBPOnCtx}
-const PFCtx = Union{OffCtx, JointPFCtx}
+const PFCtx = Union{OffCtx,JointPFCtx}
 const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel,SBP.GraphicalModel}
 
 """
@@ -247,7 +247,7 @@ Base.:+(lt::LinearTracker, v::AbstractVector) = (@set lt.offset = lt.offset + v)
 Base.:+(v::AbstractVector, lt::LinearTracker) = lt + v
 Base.:+(lt::ScalarLinearTracker, v::Number) = (@set lt.offset = lt.offset + v)
 Base.:+(v::Number, lt::ScalarLinearTracker) = lt + v
-Base.:-(lt::Union{LinearTracker, ScalarLinearTracker}) = @chain lt begin
+Base.:-(lt::Union{LinearTracker,ScalarLinearTracker}) = @chain lt begin
     @set _.linear = -_.linear
     @set _.offset = -_.offset
 end
@@ -287,8 +287,7 @@ track_rv(::GraphicalModel, d::Distribution) = TrackedObservation(rand(d), d)
 
 # Roots
 track_rv(gm::GraphicalModel, d::AbstractMvNormal) = LinearTracker(gm, initialize!(gm, d), d)
-track_rv(gm::GraphicalModel, d::Normal) =
-    ScalarLinearTracker(gm, initialize!(gm, d), d)
+track_rv(gm::GraphicalModel, d::Normal) = ScalarLinearTracker(gm, initialize!(gm, d), d)
 track_rv(gm::GraphicalModel, d::Beta) = Tracker(gm, initialize!(gm, d), d)
 
 # Children

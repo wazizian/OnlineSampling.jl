@@ -50,7 +50,7 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter)
     p = plot!([x_pos[i]; x_pos[i]], [planePosY; alt[i]], lw = 2, lc = "red", legend = false)
     (v, prob) = particles_prob(cloud)
     append!(estimated_pos, expectation(identity, cloud))
-    append!(squared_pos, expectation(x->x.^2, cloud))
+    append!(squared_pos, expectation(x -> x .^ 2, cloud))
     quiver!(v, 5 .+ zero(prob), quiver = (zero(v), 100 * prob))
 end
 

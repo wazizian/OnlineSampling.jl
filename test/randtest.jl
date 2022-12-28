@@ -1,5 +1,6 @@
 using Test
-using Test: AbstractTestSet, Result, Pass, Fail, Broken, Error, get_testset_depth, get_testset
+using Test:
+    AbstractTestSet, Result, Pass, Fail, Broken, Error, get_testset_depth, get_testset
 import Test: record, finish
 using MacroTools
 using Base: AbstractLock, ReentrantLock
@@ -22,17 +23,19 @@ macro randtestset(args...)
         @capture(arg, require = val_) && (require_expr = esc(val)) && return false
         return true
     end
-    
+
     @gensym repeat closure tasks testsets rep
     code = quote
-        @testset RandTestSet repeat=$repeat_expr require=$require_expr $(args[1]) $(map(esc, args[2:end - 1])...) begin
+        @testset RandTestSet repeat = $repeat_expr require = $require_expr $(args[1]) $(
+            map(esc, args[2:end-1])...
+        ) begin
             $testsets = task_local_storage(:__BASETESTNEXT__)
             function $closure($rep)
                 task_local_storage(:__BASETESTNEXT__, $testsets)
                 task_local_storage($(QuoteNode(REP_SYMB)), $rep)
                 $body
             end
-            Threads.@threads for $rep in 1:$repeat_expr
+            Threads.@threads for $rep = 1:$repeat_expr
                 $closure($rep)
             end
         end
@@ -56,7 +59,7 @@ end
 
 TestRepID(t::Result, rep::Int) = TestRepID(TestID(t), rep)
 
-const RawResults = Dict{TestRepID, Vector{Result}}
+const RawResults = Dict{TestRepID,Vector{Result}}
 
 function add_result!(results::RawResults, id::TestRepID, res::Result)
     if !haskey(results, id)
@@ -68,7 +71,7 @@ function add_result!(results::RawResults, id::TestRepID, res::Result)
 end
 
 const TestInternalRepID = TestRepID
-const Results = Dict{TestRepID, Vector{Result}}
+const Results = Dict{TestRepID,Vector{Result}}
 
 function convert_results(results::RawResults, repeat::Int)::Results
     new_results = Results()
@@ -96,12 +99,19 @@ struct RandTestSet{L<:AbstractLock} <: AbstractTestSet
     lock::L
 end
 
-function RandTestSet(desc::String; repeat::Int=REPEAT, require::Int=REQUIRE)
+function RandTestSet(desc::String; repeat::Int = REPEAT, require::Int = REQUIRE)
     @assert require <= repeat
-    return RandTestSet(Test.DefaultTestSet(desc), repeat, require, RawResults(), ReentrantLock())
+    return RandTestSet(
+        Test.DefaultTestSet(desc),
+        repeat,
+        require,
+        RawResults(),
+        ReentrantLock(),
+    )
 end
 
-record(rts::RandTestSet, child::AbstractTestSet) = error("RandTestSet must be at bottom level")
+record(rts::RandTestSet, child::AbstractTestSet) =
+    error("RandTestSet must be at bottom level")
 
 function record(rts::RandTestSet, res::Result)
     lock(rts.lock)
@@ -140,7 +150,9 @@ function finish(rts::RandTestSet)
             record(rts.ts, res[synth_res_ind])
         else
             printstyled("Error During Repeated Random Test: "; color = :red, bold = true)
-            println("Test failed $(rts.repeat - n_successes) out of $(rts.repeat) runs, here is a sample failure")
+            println(
+                "Test failed $(rts.repeat - n_successes) out of $(rts.repeat) runs, here is a sample failure",
+            )
             # To debug this script
             # @show test_id
             synth_res_ind = findfirst(r -> typeof(r) != Pass, res)
@@ -149,9 +161,3 @@ function finish(rts::RandTestSet)
     end
     record(parent_ts, rts.ts)
 end
-
-        
-
-
-
-

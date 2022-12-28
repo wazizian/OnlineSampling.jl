@@ -71,7 +71,7 @@ anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
     ylims!((0.0, 6.0))
     p = plot!([x_pos[i]; x_pos[i]], [planePosY; alt[i]], lw = 2, lc = "red", legend = false)
     dist_g = dist(cloud.particles[1])
-    p = plot!(x -> 5 .+ 2*pdf(Normal(dist_g.μ[1], sqrt(dist_g.Σ[1])), x))
-end 
+    p = plot!(x -> 5 .+ 2 * pdf(Normal(dist_g.μ[1], sqrt(dist_g.Σ[1])), x))
+end
 
 gif(anim, "./visu/plots/linear_sbp_fps30.gif", fps = 30)

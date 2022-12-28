@@ -9,10 +9,10 @@ var_speed = 0.3
     @init x = planePosX
     @init time = 0
     time = @prev(time) + 1
-    speed_plane = M_speed .+ var_speed*sin(time/30.)
+    speed_plane = M_speed .+ var_speed * sin(time / 30.0)
     x = @prev(x) + speed_plane
     h = planePosY .- ground.(x)
-    h_r = rand(MvNormal(h,ScalMat(1, measurementNoiseStdev^2)))
+    h_r = rand(MvNormal(h, ScalMat(1, measurementNoiseStdev^2)))
     return x, h, h_r, speed_plane
 end
 
@@ -24,14 +24,14 @@ alt = [planePosY - t[3] for t in traj]
 
 #plot([x[1] for x in x_pos],[s[1] for s in current_speed])
 
-anim = @animate for (i,t) in enumerate(traj)
+anim = @animate for (i, t) in enumerate(traj)
     p = plot(plotx, ground.(plotx), label = "")
     p = scatter!(x_pos[i], planePosY, color = "green", label = "", markersize = 5)
     p = scatter!(x_pos[i], alt[i], color = "red", label = "")
     xlims!((x_min, x_max))
     ylims!((0.0, 6.0))
     p = plot!([x_pos[i]; x_pos[i]], [planePosY; alt[i]], lw = 2, lc = "red", legend = false)
-    p = plot!([x[1] for x in x_pos],[4+s[1] for s in current_speed], label = "")
+    p = plot!([x[1] for x in x_pos], [4 + s[1] for s in current_speed], label = "")
 end
 
 gif(anim, "./visu/var_speed_fps30.gif", fps = 30)
@@ -51,7 +51,7 @@ end
     return x, speed
 end
 
-N = 500 
+N = 500
 
 cloud_iter = @nodeiter particles = N infer(obs)
 
@@ -60,17 +60,17 @@ function eval_speed(cloud)
     return mean(speeds)
 end
 
-all_s =[]
-anim = @animate for (i,cloud) in enumerate(cloud_iter)
+all_s = []
+anim = @animate for (i, cloud) in enumerate(cloud_iter)
     p = plot(plotx, ground.(plotx), label = "")
     p = scatter!(x_pos[i], planePosY, color = "green", label = "", markersize = 5)
     p = scatter!(x_pos[i], alt[i], color = "red", label = "")
     xlims!((x_min, x_max))
     ylims!((0.0, 6.0))
     p = plot!([x_pos[i]; x_pos[i]], [planePosY; alt[i]], lw = 2, lc = "red", legend = false)
-    p = plot!([x[1] for x in x_pos],[4+s[1] for s in current_speed], label = "")
+    p = plot!([x[1] for x in x_pos], [4 + s[1] for s in current_speed], label = "")
     e_s = eval_speed(cloud)
-    append!(all_s, 4+e_s)
+    append!(all_s, 4 + e_s)
     p = plot!([x[1] for x in x_pos[1:i]], all_s, color = "blue", label = "")
     (v, prob) = particles_prob(cloud)
     quiver!(v, 5 .+ zero(prob), quiver = (zero(v), 100 * prob))
@@ -79,17 +79,17 @@ end
 gif(anim, "./visu/var_speed_part_fps30.gif", fps = 30)
 
 cloud_iter_sbp = @nodeiter particles = N algo = streaming_belief_propagation infer(obs)
-all_s =[]
-anim= @animate for (i,cloud) in enumerate(cloud_iter_sbp)
+all_s = []
+anim = @animate for (i, cloud) in enumerate(cloud_iter_sbp)
     p = plot(plotx, ground.(plotx), label = "")
     p = scatter!(x_pos[i], planePosY, color = "green", label = "", markersize = 5)
     p = scatter!(x_pos[i], alt[i], color = "red", label = "")
     xlims!((x_min, x_max))
     ylims!((0.0, 6.0))
     p = plot!([x_pos[i]; x_pos[i]], [planePosY; alt[i]], lw = 2, lc = "red", legend = false)
-    p = plot!([x[1] for x in x_pos],[4+s[1] for s in current_speed], label = "")
+    p = plot!([x[1] for x in x_pos], [4 + s[1] for s in current_speed], label = "")
     e_s = eval_speed(cloud)
-    append!(all_s, 4+e_s[1])
+    append!(all_s, 4 + e_s[1])
     p = plot!([x[1] for x in x_pos[1:i]], all_s, color = "blue", label = "")
     (v, prob) = particles_prob(cloud)
     quiver!(v, 5 .+ zero(prob), quiver = (zero(v), 100 * prob))
@@ -112,15 +112,15 @@ end
 
 cloud_simple_iter = @nodeiter particles = N simple_infer(eachrow(obs))
 
-all_s =[]
-anim = @animate for (i,cloud) in enumerate(cloud_simple_iter)
+all_s = []
+anim = @animate for (i, cloud) in enumerate(cloud_simple_iter)
     p = plot(plotx, ground.(plotx), label = "")
     p = scatter!(x_pos[i], planePosY, color = "green", label = "", markersize = 5)
     p = scatter!(x_pos[i], alt[i], color = "red", label = "")
     xlims!((x_min, x_max))
     ylims!((0.0, 6.0))
     p = plot!([x_pos[i]; x_pos[i]], [planePosY; alt[i]], lw = 2, lc = "red", legend = false)
-    p = plot!([x[1] for x in x_pos],[4+s[1] for s in current_speed], label = "")
+    p = plot!([x[1] for x in x_pos], [4 + s[1] for s in current_speed], label = "")
     (v, prob) = particles_prob(cloud)
     quiver!(v, 5 .+ zero(prob), quiver = (zero(v), 100 * prob))
 end
