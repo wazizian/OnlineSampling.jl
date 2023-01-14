@@ -56,10 +56,13 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
 
 @dynamo function irpass(ftype, argtypes...)
     isapplicable = ftypehasmethod(ftype, argtypes...)
-    # @show (ftype, argtypes, isapplicable)
+    # if !isapplicable
+       # @show (ftype, argtypes, isapplicable)
+    # end
     if isapplicable
         # best case, continue
         ir = IR(ftype, argtypes...)
+        # @show ir
         should_instrument(ir) || return fallback(ftype, argtypes...)
         if is_reset_node(ir)
             ir = propagate_notinits!(ir)

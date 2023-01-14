@@ -39,7 +39,7 @@ end
 """
     Compute the next (normalized) weights
 """
-function next_logweights(log_hat_weights::AbstractVector{Float64}, chosen_particles)
+function next_logweights(log_hat_weights::AbstractArray{Float64}, chosen_particles)
     return @. log_hat_weights + loglikelihood(chosen_particles)
 end
 

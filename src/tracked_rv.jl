@@ -22,32 +22,32 @@ struct SBPOnCtx <: SamplingCtx
 end
 SBPOnCtx() = SBPOnCtx(SBP.GraphicalModel())
 
-struct JointPFCtx <: SamplingCtx
+struct AdvPFCtx <: SamplingCtx
     replay::Bool
     store::Dict{Symbol,Any}
 end
-JointPFCtx() = JointPFCtx(false, Dict{Symbol,Any}())
+AdvPFCtx() = AdvPFCtx(false, Dict{Symbol,Any}())
 
-is_jointPF(ctx::JointPFCtx) = true
-is_jointPF(::SamplingCtx) = false
+is_advPF(ctx::AdvPFCtx) = true
+is_advPF(::SamplingCtx) = false
 
-is_jointPF_store(ctx::JointPFCtx) = !(ctx.replay)
-is_jointPF_store(::SamplingCtx) = false
+is_advPF_store(ctx::AdvPFCtx) = !(ctx.replay)
+is_advPF_store(::SamplingCtx) = false
 
-@inline function get_stored_rand_var(ctx::JointPFCtx, var::Symbol)
+@inline function get_stored_rand_var(ctx::AdvPFCtx, var::Symbol)
     @assert ctx.replay
-    return store[var]
+    return ctx.store[var]
 end
 
-@inline function store_rand_var!(ctx::JointPFCtx, var::Symbol, val)
-    @assert ctx.replay
-    store[var] = val
+@inline function store_rand_var!(ctx::AdvPFCtx, var::Symbol, val)
+    @assert !ctx.replay
+    ctx.store[var] = val
 end
 
-Base.empty!(ctx::JointPFCtx) = empty!(ctx.dict)
+Base.empty!(ctx::AdvPFCtx) = empty!(ctx.dict)
 
 const OnCtx = Union{DSOnCtx,BPOnCtx,SBPOnCtx}
-const PFCtx = Union{OffCtx,JointPFCtx}
+const PFCtx = Union{OffCtx,AdvPFCtx}
 const GraphicalModel = Union{DS.GraphicalModel,BP.GraphicalModel,SBP.GraphicalModel}
 
 """
@@ -74,7 +74,7 @@ function choose_ctx_type(algo::Algorithms)
     (algo == delayed_sampling) && return DSOnCtx
     (algo == belief_propagation) && return BPOnCtx
     (algo == streaming_belief_propagation) && return SBPOnCtx
-    (algo == joint_particle_filter) && return JointPFCtx
+    (algo == joint_particle_filter) && return AdvPFCtx
     return OffCtx
 end
 

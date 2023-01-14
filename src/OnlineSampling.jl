@@ -22,15 +22,16 @@ using Distributions:
     Bernoulli,
     Binomial,
     BetaBinomial
+using StatsFuns: logsumexp
 using LinearAlgebra
 
 using ConstructionBase
 # For llvm code debugging
 using InteractiveUtils
 
-using Reexport
-
 using MyDebugTools
+
+using Reexport
 
 include("cond_distr/CondDistr.jl")
 import ..CondDistr as CD
@@ -85,7 +86,8 @@ export @node,
     particle_filter,
     delayed_sampling,
     belief_propagation,
-    streaming_belief_propagation
+    streaming_belief_propagation,
+    joint_particle_filter
 
 using Pkg
 

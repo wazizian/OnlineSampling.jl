@@ -41,23 +41,34 @@ function treat_loglikelihood_updates(llsymb::Symbol, body::Expr)
 end
 
 """
-    Replace calls to rand with [internal_rand](@ref) and collect variable names
+    Pre-treat rand calls by giving them unique ids
 """
-function treat_rand_calls(ctx_symb::Symbol, store_rand::Bool, replay_rand::Bool, body::Expr)
+function pretreat_rand_calls(body::Expr)
     return postwalk(body) do ex
         @capture(ex, rand(d_)) || return ex
         @gensym rand_var_symb
+        return quote
+            $rand_var_symb = $ex
+        end
+    end
+end
+"""
+    Replace calls to rand with [internal_rand](@ref)
+"""
+function treat_rand_calls(ctx_symb::Symbol, store_rand::Bool, replay_rand::Bool, body::Expr)
+    return postwalk(body) do ex
+        @capture(ex, var_ = rand(d_)) || return ex
         rand_code = quote
-            $rand_var_symb = $(@__MODULE__).internal_rand($ctx_symb, $d)
+            $var = $(@__MODULE__).internal_rand($ctx_symb, $d)
         end
         if store_rand
             store_rand_code = quote
                 $(@__MODULE__).store_rand_var!(
                     $ctx_symb,
-                    $(QuoteNode(rand_var_symb)),
-                    $rand_var_symb,
+                    $(QuoteNode(var)),
+                    $var,
                 )
-                $rand_var_symb
+                $var
             end
             return push_front(rand_code, store_rand_code)
         elseif replay_rand
@@ -65,9 +76,9 @@ function treat_rand_calls(ctx_symb::Symbol, store_rand::Bool, replay_rand::Bool,
             replay_rand_code = quote
                 $replay_rand_var = $(@__MODULE__).get_stored_rand_var(
                     $ctx_symb,
-                    $(QuoteNode(rand_var_symb)),
+                    $(QuoteNode(var)),
                 )
-                @observe($rand_var_symb, $replay_rand_var)
+                @observe($var, $replay_rand_var)
                 $replay_rand_var
             end
             return push_front(rand_code, replay_rand_code)
@@ -296,6 +307,7 @@ function common_body(ctx_symb::Symbol, ll_symb::Symbol, body::Expr)
     return @chain body begin
         push_front(init_ll, _)
         treat_node_calls(ctx_symb, _)
+        pretreat_rand_calls
     end
 end
 
@@ -428,24 +440,28 @@ function node_build(splitted)
     @gensym tmp outer_reset_symb
     inner_func_call = quote
         $(tmp) = if $(outer_reset_symb)
+            # @show "Reset..."
             $(@__MODULE__).irpass(
                 $(reset_inner_name),
                 $(splitted[:args][2:end]...);
                 $(splitted[:kwargs]...),
             )
-        elseif !$(@__MODULE__).is_jointPF($ctx_symb)
+        elseif !$(@__MODULE__).is_advPF($ctx_symb)
+            # @show "Plain..."
             $(@__MODULE__).irpass(
                 $(no_reset_inner_name),
                 $(splitted[:args]...);
                 $(splitted[:kwargs]...),
             )
-        elseif $(@__MODULE__).is_jointPF_store($ctx_symb)
+        elseif $(@__MODULE__).is_advPF_store($ctx_symb)
+            # @show "Storing..."
             $(@__MODULE__).irpass(
                 $(store_rand_inner_name),
                 $(splitted[:args]...);
                 $(splitted[:kwargs]...),
             )
         else
+            # @show "Replaying..."
             $(@__MODULE__).irpass(
                 $(replay_rand_inner_name),
                 $(splitted[:args]...);

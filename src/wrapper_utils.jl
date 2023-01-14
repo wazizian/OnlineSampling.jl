@@ -39,5 +39,9 @@ function unwrap_value(::Type{W}, x::Union{Tuple,AbstractArray}; value = value) w
     # https://juliaobjects.github.io/Accessors.jl/stable/docstrings/#Accessors.Elements()
     return modify(y -> unwrap_value(W, y, value = value), x, Elements())
 end
+function unwrap_value(::Type{W}, x::Dict; value = value) where {W}
+    typeallows(W, typeof(x)) || return x
+    return Dict(unwrap_value(W, key, value = value) => unwrap_value(W, val, value = value) for (key, val) in x)
+end
 
 unwrap_value(::Type{W}, x::W; value = value) where {W} = value(x)

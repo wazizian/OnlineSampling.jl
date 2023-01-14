@@ -32,7 +32,7 @@ end
 """
 @node function observe(var, obs)
     Base.depwarn("The node observe is deprecated", :iterate_obs, force = true)
-    ll = internal_observe(var, obs)
+ll = internal_observe(var, obs)
     OnlineSampling.internal_update_loglikelihood(ll)
 end
 
@@ -51,4 +51,23 @@ end
     @init cloud = smc_node_step(step, void_cloud, true, resample_threshold, args...)
     cloud = smc_node_step(step, (@prev cloud), false, resample_threshold, args...)
     return sanitize_return(cloud)
+end
+
+"""
+    Joint PF step
+"""
+@node function smc(
+    nparticles::Int64,
+    ctx_type::Type{C},
+    step::F,
+    resample_threshold::Float64,
+    args...,
+) where {C<:AdvPFCtx,F<:Function}
+    resample_threshold = 0.
+    @init void_cloud = SMC.Cloud{MemParticle{Nothing,C,Nothing}}(nparticles)
+    @init cloud = smc_node_step(step, void_cloud, true, resample_threshold, args...)
+    @init meta_cloud = cloud
+    cloud = smc_node_step(step, (@prev cloud), false, resample_threshold, args...)
+    meta_cloud = smc_joint_node_step(step, (@prev cloud), cloud, args...)
+    return sanitize_return(meta_cloud)
 end
