@@ -32,9 +32,8 @@ function sample_next(
     chosen_particles,
     args::Vararg{Any,N},
 ) where {F<:Function,N}
-    return map(chosen_particles) do p
-        proposal!(p, args...)
-    end
+    tasks = [Threads.@spawn proposal!(p, args...) for p in chosen_particles]
+    return map(fetch, tasks)
 end
 
 """
