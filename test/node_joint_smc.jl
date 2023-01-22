@@ -21,7 +21,7 @@
 # end
 
 @testset "gaussian rw" begin
-   N = 2000
+   N = 2
    Nsamples = 500
    dim = 1
    Σ = ScalMat(dim, 1.0)
@@ -35,7 +35,7 @@
        @init t = 0
        t = @prev(t) + 1
        cloud_x = @nodecall particles = N algo = joint_particle_filter model()
-       simple_cloud = @nodecall particles = N algo = particle_filter model()
+       simple_cloud = @nodecall particles = N algo = particle_filter rt = 0. model()
        if t > 0
            @test length(cloud_x) == N*N
            ex = expectation(Base.splat(vcat), cloud_x)

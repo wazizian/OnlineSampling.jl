@@ -34,7 +34,14 @@ format:
 	julia --project -e "using JuliaFormatter; format(\".\"; verbose=true)"
 
 interactive:
-	julia --project -e "using Revise, OnlineSampling, MacroTools, IRTools" -i
+	julia --project -e "using Revise, OnlineSampling, MacroTools, IRTools" -i -t $(JTHREADS)
 
 demo:
 	julia --project -e "using Revise, OnlineSampling, MacroTools, IRTools;include(\"ex.jl\")" -i
+
+collect_mem_analysis:
+	julia --track-allocation=user -e "using Pkg, Profile; Pkg.test(\"$(NAME)\"); Profile.clear_malloc_data(); Pkg.test(\"$(NAME)\")" -t $(JTHREADS)
+
+mem_analysis:
+	julia -i -e "using Coverage; allocs = analyze_malloc(\"src\")" 
+

@@ -25,7 +25,7 @@ struct TrackedObservation{T,F,S,D<:Distribution{F,S}} <: AbstractTrackedObservat
 end
 
 # Satisfy interface 
-internal_observe(y::TrackedObservation, obs) = Distributions.loglikelihood(y.d, obs)
+internal_observe(y::TrackedObservation, obs) = (@show y.d; @show obs; @show Distributions.loglikelihood(y.d, obs))
 value(y::TrackedObservation) = y.val
 
 """

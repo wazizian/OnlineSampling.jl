@@ -12,6 +12,7 @@ function resample(
             # TODO (impr): to avoid the copies here, allow to run a node with a source and 
             # target state
             # TODO (impr): do not copy the particles we have to keep anyway
+            # TODO (parallelize)
             deepcopy(cloud.particles[i])
         end
         log_hat_weights = zeros(length(cloud))

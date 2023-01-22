@@ -101,9 +101,16 @@ function smc_joint_node_step(
     meta_cloud = Cloud(meta_weights, meta_particles)
     new_meta_cloud = SMC.smc_step(augm_proposal, resample_threshold, meta_cloud, step, reset, args...)
     new_meta_weights = @chain new_meta_cloud.logweights begin
-        _ .- reshape(diag(_), 1, :)
-        _ .- logsumexp(_; dims=2)
+    #    _ .- reshape(diag(_), 1, :)
+    #    _ .- logsumexp(_; dims=2)
+        _ 
     end
+    @show exp.(prev_cloud.logweights)
+    @show exp.(curr_cloud.logweights)
+    @show meta_weights
+    @show prev_cloud.particles
+    @show curr_cloud.particles
+    @show new_meta_weights
     normalized_new_meta_cloud = @set new_meta_cloud.logweights = new_meta_weights
     # @show meta_cloud
     # @show new_meta_cloud
@@ -117,12 +124,14 @@ end
 """
 # Note: this a slight abuse of the cloud structure
 # since it does not have a loglikelihood method
-function sanitize_return(cloud::Cloud{P}) where {P<:MemParticle}
-    new_particles = map(cloud.particles) do p
-        RetParticle(
-            unwrap_soft_tracked_value(p.retvalue),
-            unwrap_dist_tracked_value(p.retvalue),
-        )
-    end
+function sanitize_return(cloud::Cloud{P}) where {M, C<:OnCtx, R, P<:MemParticle{M, C, R}}
+    tasks = [Threads.@spawn RetParticle(unwrap_soft_tracked_value(p.retvalue), unwrap_dist_tracked_value(p.retvalue)) for p in cloud.particles]
+    new_particles = map(fetch, tasks)
+    return Cloud(cloud.logweights, new_particles)
+end
+
+function sanitize_return(cloud::Cloud{P}) where {M, C<:PFCtx, R, P<:MemParticle{M, C, R}}
+    tasks = [Threads.@spawn RetParticle(unwrap_soft_tracked_value(p.retvalue), Nothing) for p in cloud.particles]
+    new_particles = map(fetch, tasks)
     return Cloud(cloud.logweights, new_particles)
 end

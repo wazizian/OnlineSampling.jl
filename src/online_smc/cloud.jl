@@ -90,7 +90,7 @@ Base.iterate(cloud::Cloud, state) =
     Essential Sample Size for adaptative resampling
 """
 function ess(normalized_weights::AbstractArray{Float64})
-    return 1 ./ sum(normalized_weights .^ 2)
+    return 1 / norm(normalized_weights, 2)^2
 end
 ess(cloud::Cloud) = (ess ∘ normalized_weights)(cloud)
 
