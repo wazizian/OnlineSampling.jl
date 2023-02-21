@@ -21,21 +21,29 @@
 # end
 
 @testset "gaussian rw" begin
-   N = 2
+   N = 2000
    Nsamples = 500
    dim = 1
    Σ = ScalMat(dim, 1.0)
    μ = ones(dim)
+   obs = [1., 2., 3., 4., 5., 6., 7.]
+   obs = reshape(obs, (length(obs), 1))
    @node function model()
        @init x = rand(MvNormal(μ, Σ))
        x = rand(MvNormal(@prev(x) + μ, Σ))
        return x
    end
-   @node function test()
+   @node function hmm(obs)
+       x = @nodecall model()
+       y = rand(MvNormal(x, Σ))
+       @observe(y, obs)
+       return x
+    end
+   @node function test(obs)
        @init t = 0
        t = @prev(t) + 1
-       cloud_x = @nodecall particles = N algo = joint_particle_filter model()
-       simple_cloud = @nodecall particles = N algo = particle_filter rt = 0. model()
+       cloud_x = @nodecall particles = N algo = joint_particle_filter hmm(obs)
+       simple_cloud = @nodecall particles = N algo = particle_filter hmm(obs)
        if t > 0
            @test length(cloud_x) == N*N
            ex = expectation(Base.splat(vcat), cloud_x)
@@ -51,7 +59,8 @@
            # @show cov
            cov_prev = expectation(Base.splat((x, y) -> x * x'), cloud_x) - expectation(first, cloud_x) * expectation(first, cloud_x)'
            # cov_curr = expectation(Base.splat((x, y) -> y * y'), cloud_x) - expectation(t -> t[2], cloud_x) * expectation(t -> t[2], cloud_x)'
-           cov_curr = expectation(Base.splat((x, y) -> y * y'), cloud_x) - (t+1)^2 .* μ * μ'
+           snd = p -> p[2]
+           cov_curr = expectation(Base.splat((x, y) -> y * y'), cloud_x) - expectation(snd, cloud_x) * expectation(snd, cloud_x)'
            @show cov_prev
            @show cov_curr
            cov_curr_simple = expectation(x-> x * x', simple_cloud) - expectation(identity, simple_cloud) * expectation(identity, simple_cloud)'
@@ -67,5 +76,5 @@
        end
    end
 
-   @noderun T = 5 test()
+   @noderun T = 5 test(eachrow(obs))
 end

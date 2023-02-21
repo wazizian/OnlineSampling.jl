@@ -96,21 +96,26 @@ function smc_joint_node_step(
     reset = false
     # @show prev_cloud
     # @show curr_cloud
+    obs_weights = reshape(curr_cloud.logweights - prev_cloud.logweights, 1, :)
+    @assert size(obs_weights) == (1, length(curr_cloud))
+    prev_cloud = SMC.resample_cloud(prev_cloud)
+    curr_cloud = SMC.resample_cloud(curr_cloud)
     meta_particles = map(Base.splat(replay_particule), Base.product(prev_cloud.particles, curr_cloud.particles))
-    meta_weights = repeat(prev_cloud.logweights, 1, length(curr_cloud))
+    meta_weights = repeat(prev_cloud.logweights, 1, length(curr_cloud)) # .+ obs_weights
     meta_cloud = Cloud(meta_weights, meta_particles)
     new_meta_cloud = SMC.smc_step(augm_proposal, resample_threshold, meta_cloud, step, reset, args...)
     new_meta_weights = @chain new_meta_cloud.logweights begin
     #    _ .- reshape(diag(_), 1, :)
-    #    _ .- logsumexp(_; dims=2)
-        _ 
+        _ .- logsumexp(_; dims=1)
+        _ .+ obs_weights
+        _ .- logsumexp(_; dims=2)
     end
-    @show exp.(prev_cloud.logweights)
-    @show exp.(curr_cloud.logweights)
-    @show meta_weights
-    @show prev_cloud.particles
-    @show curr_cloud.particles
-    @show new_meta_weights
+    # @show exp.(prev_cloud.logweights)
+    # @show exp.(curr_cloud.logweights)
+    # @show meta_weights
+    # @show prev_cloud.particles
+    # @show curr_cloud.particles
+    # @show new_meta_weights
     normalized_new_meta_cloud = @set new_meta_cloud.logweights = new_meta_weights
     # @show meta_cloud
     # @show new_meta_cloud
