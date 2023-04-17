@@ -21,12 +21,13 @@
 # end
 
 @testset "gaussian rw" begin
-   N = 2000
+   N = 500
    Nsamples = 500
    dim = 1
    Σ = ScalMat(dim, 1.0)
    μ = ones(dim)
-   obs = [1., 2., 3., 4., 5., 6., 7.]
+   T = 5
+   obs = vec(1:T)
    obs = reshape(obs, (length(obs), 1))
    @node function model()
        @init x = rand(MvNormal(μ, Σ))
@@ -76,5 +77,5 @@
        end
    end
 
-   @noderun T = 5 test(eachrow(obs))
+   @noderun test(eachrow(obs))
 end
