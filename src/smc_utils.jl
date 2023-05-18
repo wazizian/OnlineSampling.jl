@@ -98,17 +98,20 @@ function smc_joint_node_step(
     # @show curr_cloud
     obs_weights = reshape(curr_cloud.logweights - prev_cloud.logweights, 1, :)
     @assert size(obs_weights) == (1, length(curr_cloud))
-    prev_cloud = SMC.resample_cloud(prev_cloud)
-    curr_cloud = SMC.resample_cloud(curr_cloud)
+    # prev_cloud = SMC.resample_cloud(prev_cloud)
+    # curr_cloud = SMC.resample_cloud(curr_cloud)
+    prev_cloud = SMC.normalize(prev_cloud)
+    curr_cloud = SMC.normalize(curr_cloud)
     meta_particles = map(Base.splat(replay_particule), Base.product(prev_cloud.particles, curr_cloud.particles))
     meta_weights = repeat(prev_cloud.logweights, 1, length(curr_cloud)) # .+ obs_weights
+    # meta_weights = prev_cloud.logweights .+ (obs_weights .- logsumexp(obs_weights))'
     meta_cloud = Cloud(meta_weights, meta_particles)
     new_meta_cloud = SMC.smc_step(augm_proposal, resample_threshold, meta_cloud, step, reset, args...)
     new_meta_weights = @chain new_meta_cloud.logweights begin
     #    _ .- reshape(diag(_), 1, :)
-        _ .- logsumexp(_; dims=1)
+        _ .- logsumexp(_; dims=1) # Compute p(x_{n+1})
         _ .+ obs_weights
-        _ .- logsumexp(_; dims=2)
+   #     _ .- logsumexp(_; dims=2) # obs_weights above are not normalized
     end
     # @show exp.(prev_cloud.logweights)
     # @show exp.(curr_cloud.logweights)

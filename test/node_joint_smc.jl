@@ -26,7 +26,7 @@
    dim = 1
    Σ = ScalMat(dim, 1.0)
    μ = ones(dim)
-   T = 5
+   T = 10
    obs = vec(1:T)
    obs = reshape(obs, (length(obs), 1))
    @node function model()

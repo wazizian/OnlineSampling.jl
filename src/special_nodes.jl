@@ -64,7 +64,7 @@ end
     args...,
 ) where {C<:AdvPFCtx,F<:Function}
     # Systematic resampling required
-    resample_threshold = 1.
+    # resample_threshold = 1.
     @init void_cloud = SMC.Cloud{MemParticle{Nothing,C,Nothing}}(nparticles)
     @init cloud = smc_node_step(step, void_cloud, true, resample_threshold, args...)
     @init meta_cloud = cloud

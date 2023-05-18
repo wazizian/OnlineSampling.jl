@@ -24,6 +24,8 @@ loglikelihood(p) = p.loglikelihood
 Base.length(cloud::Cloud) = length(cloud.particles)
 normalized_weights(cloud::Cloud) = softmax(cloud.logweights)
 
+normalize(cloud::Cloud) = @set cloud.logweights = cloud.logweights .- logsumexp(cloud.logweights)
+
 Cloud(particles::P) where {T,P<:AbstractArray{T}} =
     Cloud{T,Vector{Float64},P}(fill(-log(length(particles)), length(particles)), particles)
 
