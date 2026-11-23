@@ -45,6 +45,23 @@ end
 should_instrument(::Nothing) = false
 should_instrument(ir::IR) = !is_node(ir)
 
+has_foreigncall(ir::IR) =
+    any(st -> Base.Meta.isexpr(st.expr, :foreigncall), (st for (_, st) in ir))
+
+# True when every :call in `ir` targets a Core.Builtin on which irpass falls through,
+# excluding Core._apply / Core._apply_iterate (which recurse! rewrites).
+function only_builtin_calls(ir::IR)
+    for (_, st) in ir
+        ex = st.expr
+        Base.Meta.isexpr(ex, :call) || continue
+        f = ex.args[1]
+        (f isa GlobalRef && isdefined(f.mod, f.name)) || return false
+        f in (GlobalRef(Core, :_apply_iterate), GlobalRef(Core, :_apply)) && return false
+        getfield(f.mod, f.name) isa Core.Builtin || return false
+    end
+    return true
+end
+
 """
     Perform a recursive pass on the IR
     - Replace functions which cannot handle notinit with notinit
@@ -53,6 +70,11 @@ should_instrument(ir::IR) = !is_node(ir)
 # Exception for `println` and `show`
 # to have unaltered info during debug
 irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
+# Avoid unbounded @dynamo recompilation/specialization growth: Base._collect builds
+# `AbstractArray{<:T, N}` with a fresh TypeVar on every call, so UnionAll(v, t) reaches
+# the @dynamo with a new type signature every update (even on Julia 1.7). UnionAll's body
+# is a single ccall, so bypassing @dynamo for Base's exact constructor signature is exact.
+irpass(::Type{UnionAll}, v::TypeVar, @nospecialize(t)) = UnionAll(v, t)
 
 @dynamo function irpass(ftype, argtypes...)
     isapplicable = ftypehasmethod(ftype, argtypes...)
@@ -64,7 +86,16 @@ irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
         if is_reset_node(ir)
             ir = propagate_notinits!(ir)
         end
-        if is_any_node(ir) || typeallowstracked(ftype) || any(typeallowstracked, argtypes)
+        needs_recursion =
+            is_any_node(ir) || typeallowstracked(ftype) || any(typeallowstracked, argtypes)
+        # IRTools cannot re-emit ccall (:foreigncall) statements on Julia 1.10.
+        # Fall through directly only when the original pass would produce identical code.
+        if !is_reset_node(ir) &&
+           has_foreigncall(ir) &&
+           (!needs_recursion || only_builtin_calls(ir))
+            return fallback(ftype, argtypes...)
+        end
+        if needs_recursion
             recurse!(ir)
         end
         return ir

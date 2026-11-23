@@ -91,7 +91,7 @@ end
 
 @testset "invalid obs : atan" begin
     @node function f(obs)
-        y = rand(IsoNormal(zeros(1), ScalMat(1, 1.0)))
+        y = rand(MvNormal(zeros(1), ScalMat(1, 1.0)))
         @observe atan.(y) obs
     end
     obs = [[1.0], [2.0], [3.0]]
@@ -105,7 +105,7 @@ end
 
 @testset "invalid obs : atan bis" begin
     @node function f(obs)
-        y = rand(IsoNormal(zeros(1), ScalMat(1, 1.0)))
+        y = rand(MvNormal(zeros(1), ScalMat(1, 1.0)))
         z = atan.(y)
         @observe y obs
         return z
@@ -121,7 +121,7 @@ end
 
 @testset "invalid obs : collect (curr lim)" begin
     @node function f(obs)
-        y = rand(IsoNormal(zeros(1), ScalMat(1, 1.0)))
+        y = rand(MvNormal(zeros(1), ScalMat(1, 1.0)))
         c = collect(y)
         @observe y obs
         return c

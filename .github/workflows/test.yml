@@ -12,18 +12,28 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        julia-version: ['1.7']
-        os: [ubuntu-latest, macOS-latest]
-    
+        include:
+          - julia-version: '1.7'
+            os: ubuntu-latest
+            jthreads: '4'
+          - julia-version: '1.10'
+            os: ubuntu-latest
+            # Run single-threaded on 1.10: IRTools @dynamo codegen in randtest.jl can segfault under multi-threading.
+            jthreads: '1'
+          - julia-version: '1.10'
+            os: macos-latest
+            jthreads: '1'
+
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Julia
-        uses: julia-actions/setup-julia@v1
+        uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.julia-version }}
       - name: Install current version
         run: make develop
       - name: Run tests
-        run: make test
+        run: make test JTHREADS=${{ matrix.jthreads }}
