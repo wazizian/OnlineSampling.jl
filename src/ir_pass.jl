@@ -53,6 +53,11 @@ should_instrument(ir::IR) = !is_node(ir)
 # Exception for `println` and `show`
 # to have unaltered info during debug
 irpass(g::Union{typeof(Base.println),typeof(Base.show)}, args...) = g(args...)
+# Avoid unbounded @dynamo recompilation/specialization growth: Base._collect builds
+# `AbstractArray{<:T, N}` with a fresh TypeVar on every call, so UnionAll(v, t) reaches
+# the @dynamo with a new type signature every update (even on Julia 1.7). UnionAll's body
+# is a single ccall, so bypassing @dynamo for Base's exact constructor signature is exact.
+irpass(::Type{UnionAll}, v::TypeVar, @nospecialize(t)) = UnionAll(v, t)
 
 @dynamo function irpass(ftype, argtypes...)
     isapplicable = ftypehasmethod(ftype, argtypes...)
