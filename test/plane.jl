@@ -72,5 +72,5 @@
     samples1d = vec(rand(cloud1d, Nsamples))
 
     test = KSampleADTest(samples, samples1d)
-    @test_broken (pvalue(test) > 0.01) || @show test
+    @test_broken pvalue(test) > 0.01
 end

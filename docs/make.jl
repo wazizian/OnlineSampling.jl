@@ -4,6 +4,7 @@ using OnlineSampling
 makedocs(
     sitename="OnlineSampling.jl",
     modules = [OnlineSampling],
+    warnonly = [:missing_docs],
     pages = [
         "Home" => "index.md",
         "Getting Started" => "start.md",
